@@ -1,0 +1,229 @@
+/* ===== ESTILO ESPECÍFICO DO CONFIRMAR RECEBIMENTO ===== */
+
+body {
+    margin: 0;
+    background: var(--bg, #f6f4f2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    font-family: "Poppins", sans-serif;
+  }
+  
+  .phone {
+    width: 100%;
+    max-width: 430px;
+    background: #fff;
+    min-height: 90vh;
+    max-height: 800px;
+    border-radius: 32px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  
+  .header {
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  
+  .back {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: #a9c3bb;
+    color: #fff;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s;
+  }
+  
+  .back:hover {
+    background: #8fafa5;
+  }
+  
+  .content {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  
+  h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    text-align: center;
+    color: #2b2b2b;
+  }
+  
+  /* Card de informações da doação */
+  .doacao-info {
+    background: #f8f9fa;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-left: 4px solid var(--orange, #f4822f);
+  }
+  
+  .info-item {
+    margin: 10px 0;
+    font-size: 14px;
+    line-height: 1.4;
+    color: #444;
+  }
+  
+  .info-label {
+    font-weight: 600;
+    color: #333;
+    display: inline-block;
+    min-width: 100px;
+  }
+  
+  /* Caixa de confirmação */
+  .confirm-box {
+    background: #e8f5e8;
+    border: 2px solid var(--green, #28a745);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .confirm-icon {
+    font-size: 48px;
+    margin-bottom: 10px;
+  }
+  
+  .confirm-box h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #2b2b2b;
+  }
+  
+  .confirm-box p {
+    color: #666;
+    font-size: 14px;
+    margin: 10px 0;
+  }
+  
+  /* Botões */
+  .btn {
+    width: 100%;
+    padding: 16px;
+    border-radius: 999px;
+    border: none;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: all 0.3s;
+    font-family: "Poppins", sans-serif;
+  }
+  
+  .btn.confirm {
+    background: var(--green, #28a745);
+    color: #fff;
+  }
+  
+  .btn.confirm:hover {
+    background: #218838;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  }
+  
+  .btn.cancel {
+    background: #6c757d;
+    color: #fff;
+  }
+  
+  .btn.cancel:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+  }
+  
+  .btn:active {
+    transform: translateY(0);
+  }
+  
+  /* Mensagem de erro */
+  .error-message {
+    background: #ffe6e6;
+    color: #d63031;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    border-left: 4px solid #d63031;
+  }
+  
+  /* Responsividade */
+  @media (max-width: 480px) {
+    body {
+      padding: 10px;
+    }
+    
+    .phone {
+      border-radius: 24px;
+    }
+    
+    h1 {
+      font-size: 22px;
+    }
+    
+    .doacao-info {
+      padding: 15px;
+    }
+    
+    .info-item {
+      font-size: 13px;
+    }
+    
+    .info-label {
+      min-width: 80px;
+    }
+    
+    .btn {
+      padding: 14px;
+      font-size: 15px;
+    }
+  }
+  
+  @media (max-height: 700px) {
+    .content {
+      padding: 15px;
+    }
+    
+    h1 {
+      margin-bottom: 15px;
+    }
+    
+    .doacao-info {
+      padding: 12px;
+      margin-bottom: 15px;
+    }
+    
+    .info-item {
+      margin: 8px 0;
+    }
+    
+    .confirm-box {
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    
+    .confirm-icon {
+      font-size: 40px;
+    }
+  }

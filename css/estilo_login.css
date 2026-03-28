@@ -1,0 +1,212 @@
+/* ===== ESTILO ESPECÍFICO DO LOGIN ===== */
+
+body {
+    margin: 0;
+    font-family: "Inter", sans-serif;
+    background: #f7f7f7;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  
+  .login-screen {
+    width: 100%;
+    max-width: 360px;
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    text-align: center;
+  }
+  
+  .header {
+    background: #ff8a00;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .logo { 
+    width: 80px; 
+    display: block;
+    margin: 0 auto;
+  }
+  
+  h2 { 
+    color: #4a3f35; 
+    margin: 16px 0; 
+    font-weight: 600;
+    font-size: 24px;
+  }
+  
+  .form { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 12px; 
+    margin-bottom: 16px;
+  }
+  
+  .form input {
+    padding: 14px 16px;
+    border: 1px solid #ddd;
+    border-radius: 30px;
+    font-size: 14px;
+    font-family: "Inter", sans-serif;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  
+  .form input:focus {
+    outline: none;
+    border-color: #ff8a00;
+    box-shadow: 0 0 0 3px rgba(255, 138, 0, 0.1);
+  }
+  
+  .form input::placeholder {
+    color: #aaa;
+  }
+  
+  .btn {
+    padding: 14px 16px;
+    border-radius: 30px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 15px;
+    font-family: "Inter", sans-serif;
+    width: 100%;
+    box-sizing: border-box;
+    transition: all 0.3s;
+  }
+  
+  .btn.primary { 
+    background: #ff8a00; 
+    color: white; 
+    margin-top: 8px;
+  }
+  
+  .btn.primary:hover {
+    background: #e67329;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 138, 0, 0.3);
+  }
+  
+  .btn.primary:active {
+    transform: translateY(0);
+  }
+  
+  .btn.facebook { 
+    background: #1877f2; 
+    color: white; 
+    margin-bottom: 8px; 
+  }
+  
+  .btn.facebook:hover {
+    background: #0e5fd9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(24, 119, 242, 0.3);
+  }
+  
+  .btn.google { 
+    background: #f5f5f5; 
+    color: #444; 
+    border: 1px solid #ddd;
+  }
+  
+  .btn.google:hover {
+    background: #e5e5e5;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .forgot { 
+    display: block; 
+    margin: 16px 0; 
+    font-size: 14px; 
+    color: #666; 
+    text-decoration: none; 
+    transition: color 0.3s;
+  }
+  
+  .forgot:hover {
+    color: #ff8a00;
+    text-decoration: underline;
+  }
+  
+  .divider { 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    margin: 20px 0; 
+    color: #999; 
+    font-size: 14px; 
+  }
+  
+  .divider::before, .divider::after {
+    content: ""; 
+    flex: 1; 
+    height: 1px; 
+    background: linear-gradient(90deg, transparent, #ddd, transparent);
+    margin: 0 10px;
+  }
+  
+  .signup { 
+    margin-top: 24px; 
+    font-size: 15px; 
+    color: #666; 
+  }
+  
+  .signup a { 
+    color: #ff8a00; 
+    text-decoration: none; 
+    font-weight: 600;
+    transition: color 0.3s;
+  }
+  
+  .signup a:hover {
+    color: #e67329;
+    text-decoration: underline;
+  }
+  
+  /* Container para os botões sociais */
+  .social-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  
+  /* Responsividade */
+  @media (max-width: 480px) {
+    body {
+      padding: 10px;
+    }
+    
+    .login-screen {
+      padding: 20px;
+    }
+    
+    h2 {
+      font-size: 22px;
+    }
+    
+    .form input,
+    .btn {
+      padding: 12px 14px;
+      font-size: 14px;
+    }
+  }
+  
+  @media (max-height: 600px) {
+    body {
+      align-items: flex-start;
+      padding-top: 20px;
+    }
+    
+    .login-screen {
+      margin: 10px auto;
+    }
+  }
