@@ -1,13 +1,11 @@
 <?php
 session_start();
 
-// Só deixa entrar se estiver logado
 if (!isset($_SESSION["usuario_id"])) {
     header("Location: login.php");
     exit;
 }
 
-// Só DOADOR pode agendar coleta
 if (($_SESSION["usuario_tipo"] ?? "") !== "doador") {
     header("Location: feed.php");
     exit;
@@ -15,72 +13,44 @@ if (($_SESSION["usuario_tipo"] ?? "") !== "doador") {
 
 require "banco.php";
 
-$nome = $_SESSION["usuario_nome"] ?? "Usuário";
+$nome      = $_SESSION["usuario_nome"] ?? "Usuário";
 $id_doador = $_SESSION["usuario_id"];
 
-// Verificar se veio de um post específico (com ID da ONG)
-$id_ong = $_GET['ong'] ?? null;
-$titulo_ong = $_GET['titulo'] ?? '';
+// Parâmetros vindos da URL
+$id_ong    = $_GET['ong']   ?? null;
+$titulo_ong = $_GET['titulo'] ?? ''; // vazio quando vem do perfil público
 
-// Mostrar mensagem de sucesso se existir
+// Mensagem de sucesso
 $mensagem_sucesso = '';
 if (isset($_SESSION['agendamento_sucesso'])) {
     $mensagem_sucesso = $_SESSION['agendamento_sucesso'];
     unset($_SESSION['agendamento_sucesso']);
 }
 
-// Buscar todas as ONGs cadastradas 
+// Buscar todas as ONGs
 $ongs = [];
 try {
-    // Verificar primeiro se a coluna categoria existe
     $stmt_check = $pdo->query("SELECT column_name FROM information_schema.columns 
                                WHERE table_name = 'ongs' AND column_name = 'categoria'");
     $categoria_exists = $stmt_check->fetch(PDO::FETCH_ASSOC);
-    
-    if ($categoria_exists) {
-        // Se a coluna categoria existe, usar a consulta completa
-        $stmt = $pdo->prepare("SELECT 
-                u.id_usuario, 
-                u.nome, 
-                u.email, 
-                u.cpf_cnpj, 
-                o.endereco, 
-                o.descricao, 
-                o.categoria 
-            FROM usuarios u 
-            LEFT JOIN ongs o ON u.id_usuario = o.id_ong 
-            WHERE u.tipo_usuario = 'instituicao' 
-            ORDER BY u.nome ASC");
-    } else {
-        // Se não existe, buscar sem a coluna categoria
-        $stmt = $pdo->prepare("SELECT 
-                u.id_usuario, 
-                u.nome, 
-                u.email, 
-                u.cpf_cnpj, 
-                o.endereco, 
-                o.descricao
-            FROM usuarios u 
-            LEFT JOIN ongs o ON u.id_usuario = o.id_ong 
-            WHERE u.tipo_usuario = 'instituicao' 
-            ORDER BY u.nome ASC");
-    }
-    
+
+    $sql_ongs = $categoria_exists
+        ? "SELECT u.id_usuario, u.nome, u.email, u.cpf_cnpj, o.endereco, o.descricao, o.categoria 
+           FROM usuarios u LEFT JOIN ongs o ON u.id_usuario = o.id_ong 
+           WHERE u.tipo_usuario = 'instituicao' ORDER BY u.nome ASC"
+        : "SELECT u.id_usuario, u.nome, u.email, u.cpf_cnpj, o.endereco, o.descricao 
+           FROM usuarios u LEFT JOIN ongs o ON u.id_usuario = o.id_ong 
+           WHERE u.tipo_usuario = 'instituicao' ORDER BY u.nome ASC";
+
+    $stmt = $pdo->prepare($sql_ongs);
     $stmt->execute();
     $ongs = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
 } catch (PDOException $e) {
     error_log("ERRO ao buscar ONGs: " . $e->getMessage());
-    // consulta mais simples em caso de erro
     try {
-        $stmt_simple = $pdo->prepare("SELECT 
-                u.id_usuario, 
-                u.nome, 
-                u.email, 
-                u.cpf_cnpj
-            FROM usuarios u 
-            WHERE u.tipo_usuario = 'instituicao' 
-            ORDER BY u.nome ASC");
+        $stmt_simple = $pdo->prepare("SELECT u.id_usuario, u.nome, u.email, u.cpf_cnpj 
+                                      FROM usuarios u WHERE u.tipo_usuario = 'instituicao' ORDER BY u.nome ASC");
         $stmt_simple->execute();
         $ongs = $stmt_simple->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e2) {
@@ -88,126 +58,92 @@ try {
     }
 }
 
-// Buscar informações da ONG específica se foi informada
+// Buscar dados da ONG selecionada (via GET ou POST)
 $ong_selecionada = null;
-if ($id_ong) {
-    try {
-        $stmt = $pdo->prepare("SELECT u.nome, u.email, u.cpf_cnpj, 
-                                      o.endereco, o.id_ong, o.descricao
-                              FROM usuarios u 
-                              LEFT JOIN ongs o ON u.id_usuario = o.id_ong 
-                              WHERE u.id_usuario = ? AND u.tipo_usuario = 'instituicao'");
-        $stmt->execute([$id_ong]);
-        $ong_selecionada = $stmt->fetch(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        error_log("Erro ao buscar ONG específica: " . $e->getMessage());
-    }
+
+function buscarOng($pdo, $id) {
+    $stmt = $pdo->prepare("SELECT u.nome, u.email, u.cpf_cnpj, o.endereco, o.id_ong, o.descricao
+                           FROM usuarios u LEFT JOIN ongs o ON u.id_usuario = o.id_ong 
+                           WHERE u.id_usuario = ? AND u.tipo_usuario = 'instituicao'");
+    $stmt->execute([$id]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
-// Buscar ID do doador na tabela doadores
+// Buscar ID do doador
 $id_doador_table = null;
 try {
     $stmt = $pdo->prepare("SELECT id_doador FROM doadores WHERE id_doador = ?");
     $stmt->execute([$id_doador]);
-    $doador_info = $stmt->fetch(PDO::FETCH_ASSOC);
+    $doador_info     = $stmt->fetch(PDO::FETCH_ASSOC);
     $id_doador_table = $doador_info['id_doador'] ?? null;
 } catch (PDOException $e) {
     error_log("Erro ao buscar doador: " . $e->getMessage());
 }
 
-// Variáveis para o formulário
-$data_selecionada = $_POST['data_coleta'] ?? '';
-$horario_selecionado = $_POST['horario'] ?? '';
-$local_selecionado = $_POST['local_coleta'] ?? '';
-$tipo_doacao = $_POST['tipo_doacao'] ?? 'ITEM';
-$descricao_item = $_POST['descricao_item'] ?? '';
-$valor_doacao = $_POST['valor_doacao'] ?? '';
-$ong_escolhida = $_POST['ong_escolhida'] ?? $id_ong ?? '';
-$buscar_ong = $_POST['buscar_ong'] ?? '';
-$mensagem = '';
+// Variáveis do formulário
+$data_selecionada    = $_POST['data_coleta']    ?? '';
+$horario_selecionado = $_POST['horario']         ?? '';
+$local_selecionado   = $_POST['local_coleta']    ?? '';
+$tipo_doacao         = $_POST['tipo_doacao']     ?? 'ITEM';
+$descricao_item      = $_POST['descricao_item']  ?? '';
+$valor_doacao        = $_POST['valor_doacao']    ?? '';
+$ong_escolhida       = $_POST['ong_escolhida']   ?? $id_ong ?? '';
+$buscar_ong          = $_POST['buscar_ong']      ?? '';
+$mensagem            = '';
 
-// Processar o agendamento
+// Processar POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
     if (isset($_POST['escolher_ong'])) {
-        // Usuário está escolhendo uma ONG
         $ong_escolhida = $_POST['ong_escolhida'] ?? '';
         if ($ong_escolhida) {
-            // Buscar informações da ONG escolhida
             try {
-                $stmt = $pdo->prepare("SELECT u.nome, u.email, u.cpf_cnpj, 
-                                              o.endereco, o.id_ong, o.descricao
-                                      FROM usuarios u 
-                                      LEFT JOIN ongs o ON u.id_usuario = o.id_ong 
-                                      WHERE u.id_usuario = ?");
-                $stmt->execute([$ong_escolhida]);
-                $ong_selecionada = $stmt->fetch(PDO::FETCH_ASSOC);
+                $ong_selecionada = buscarOng($pdo, $ong_escolhida);
             } catch (PDOException $e) {
                 $mensagem = '<div class="error-message">❌ Erro ao buscar informações da ONG.</div>';
             }
         }
+
     } elseif (isset($_POST['agendar'])) {
-        // Validar dados do agendamento
         if (empty($ong_escolhida)) {
             $mensagem = '<div class="error-message">Selecione uma ONG para doação!</div>';
         } elseif (empty($data_selecionada) || empty($horario_selecionado) || empty($local_selecionado)) {
             $mensagem = '<div class="error-message">Preencha todos os campos!</div>';
-        } else if (!$id_doador_table) {
+        } elseif (!$id_doador_table) {
             $mensagem = '<div class="error-message">❌ Erro: Doador não encontrado.</div>';
         } else {
             try {
-                // Iniciar transação
                 $pdo->beginTransaction();
-                
-                // Combinar data e horário
+
                 $data_hora_agendada = $data_selecionada . ' ' . $horario_selecionado . ':00';
-                
-                // Preparar valores para inserção
-                $valor = ($tipo_doacao === 'DINHEIRO' && !empty($valor_doacao)) ? $valor_doacao : null;
+                $valor     = ($tipo_doacao === 'DINHEIRO' && !empty($valor_doacao)) ? $valor_doacao : null;
                 $descricao = ($tipo_doacao === 'ITEM') ? $descricao_item : null;
-                
-                // 1. Inserir na tabela doacoes
-                $sql_doacao = "INSERT INTO doacoes (id_doador, id_ong, tipo, status, descricao_item, valor) 
-                              VALUES (?, ?, ?, 'AGENDADA', ?, ?)";
-                $stmt_doacao = $pdo->prepare($sql_doacao);
-                $stmt_doacao->execute([
-                    $id_doador_table, 
-                    $ong_escolhida,
-                    $tipo_doacao, 
-                    $descricao,
-                    $valor
-                ]);
-                
-                // Pegar o ID da doação inserida
+
+                $stmt_doacao = $pdo->prepare("INSERT INTO doacoes (id_doador, id_ong, tipo, status, descricao_item, valor) 
+                                              VALUES (?, ?, ?, 'AGENDADA', ?, ?)");
+                $stmt_doacao->execute([$id_doador_table, $ong_escolhida, $tipo_doacao, $descricao, $valor]);
                 $id_doacao = $pdo->lastInsertId();
-                
-                // 2. Inserir na tabela coletas
-                $sql_coleta = "INSERT INTO coletas (id_doacao, tipo, endereco, data_agendada) 
-                              VALUES (?, 'COLETA', ?, ?)";
-                $stmt_coleta = $pdo->prepare($sql_coleta);
+
+                $stmt_coleta = $pdo->prepare("INSERT INTO coletas (id_doacao, tipo, endereco, data_agendada) 
+                                              VALUES (?, 'COLETA', ?, ?)");
                 $stmt_coleta->execute([$id_doacao, $local_selecionado, $data_hora_agendada]);
-                
-                // 3. Criar notificação para a ONG
-                $nome_doador = $_SESSION["usuario_nome"] ?? 'Doador';
-                $mensagem_notificacao = "{$nome_doador} agendou uma coleta de {$tipo_doacao} para " . 
-                                       date('d/m/Y H:i', strtotime($data_hora_agendada)) . 
-                                       " no local: {$local_selecionado}";
-                
-                $sql_notificacao = "INSERT INTO notificacoes (id_usuario, mensagem, tipo) 
-                                   VALUES (?, ?, 'COLETA_AGENDADA')";
-                $stmt_notificacao = $pdo->prepare($sql_notificacao);
-                $stmt_notificacao->execute([$ong_escolhida, $mensagem_notificacao]);
+
+                $nome_doador         = $_SESSION["usuario_nome"] ?? 'Doador';
+                $mensagem_notificacao = "{$nome_doador} agendou uma coleta de {$tipo_doacao} para " .
+                                        date('d/m/Y H:i', strtotime($data_hora_agendada)) .
+                                        " no local: {$local_selecionado}";
+
+                $stmt_notif = $pdo->prepare("INSERT INTO notificacoes (id_usuario, mensagem, tipo) 
+                                             VALUES (?, ?, 'COLETA_AGENDADA')");
+                $stmt_notif->execute([$ong_escolhida, $mensagem_notificacao]);
 
                 $pdo->commit();
-                
-                // Armazenar a mensagem de sucesso para mostrar nesta página
+
                 $_SESSION['agendamento_sucesso'] = "✅ Agendamento realizado com sucesso! A ONG foi notificada.";
-                
-                // Redirecionar para a mesma página para limpar os dados do POST
                 header("Location: agendar_coleta.php?sucesso=1&ong=" . urlencode($ong_escolhida));
                 exit;
-                
+
             } catch (PDOException $e) {
-                // Rollback em caso de erro
                 $pdo->rollBack();
                 $mensagem = '<div class="error-message">❌ Erro ao agendar: ' . $e->getMessage() . '</div>';
                 error_log("Erro no agendamento: " . $e->getMessage());
@@ -216,21 +152,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Verificar se há ONG selecionada para mostrar o formulário completo
+// Buscar ONG via GET (vindo do feed ou perfil público) — só se não veio de POST
+if ($id_ong && $_SERVER['REQUEST_METHOD'] !== 'POST' && !$ong_selecionada) {
+    try {
+        $ong_selecionada = buscarOng($pdo, $id_ong);
+    } catch (PDOException $e) {
+        error_log("Erro ao buscar ONG específica: " . $e->getMessage());
+    }
+}
+
+// Se veio de POST de escolher_ong e ainda não buscou
+if (!$ong_selecionada && !empty($ong_escolhida)) {
+    try {
+        $ong_selecionada = buscarOng($pdo, $ong_escolhida);
+    } catch (PDOException $e) {
+        error_log("Erro ao buscar ONG: " . $e->getMessage());
+    }
+}
+
 $mostrar_formulario = !empty($ong_escolhida);
 ?>
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Agendar Coleta - Volunteer Community</title>
-
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/estilo_global.css">
 <link rel="stylesheet" href="css/estilo_agendar_coleta.css">
-
 <style>
 .error-message {
   background: #ffe6e6;
@@ -243,7 +193,6 @@ $mostrar_formulario = !empty($ong_escolhida);
 }
 </style>
 </head>
-
 <body>
 
 <div class="phone">
@@ -255,40 +204,36 @@ $mostrar_formulario = !empty($ong_escolhida);
     <span style="visibility:hidden;">⚙️</span>
   </div>
 
-  <!-- CONTEÚDO PRINCIPAL COM SCROLL -->
   <div class="main-content">
-    <?php 
-    // Mostrar mensagem de sucesso se existir
-    if (!empty($mensagem_sucesso)) {
-        echo '<div class="success-message" id="successMessage">' . $mensagem_sucesso . '</div>';
-    }
-    
-    echo $mensagem; 
-    ?>
+
+    <?php if (!empty($mensagem_sucesso)): ?>
+      <div class="success-message" id="successMessage"><?= $mensagem_sucesso ?></div>
+    <?php endif; ?>
+
+    <?= $mensagem ?>
 
     <?php if (!$mostrar_formulario): ?>
-    <!-- TELA DE ESCOLHA DE ONG -->
+    <!-- ===== TELA DE ESCOLHA DE ONG ===== -->
     <div class="busca-ong">
       <div class="search-box">
         <form method="POST" action="" id="searchForm">
-          <input type="text" name="buscar_ong" id="searchInput" placeholder="Buscar ONG por nome ou categoria..." 
+          <input type="text" name="buscar_ong" id="searchInput"
+                 placeholder="Buscar ONG por nome ou categoria..."
                  value="<?= htmlspecialchars($buscar_ong) ?>" onkeyup="filterOngs()">
           <button type="button" onclick="filterOngs()">🔍</button>
         </form>
       </div>
-      
+
       <div class="section">Selecione uma ONG para doação</div>
-      
+
       <?php if (empty($ongs)): ?>
         <div class="no-ongs">
           <p>⚠️ Nenhuma ONG cadastrada no momento.</p>
-          <p><small>Verifique se existem instituições cadastradas no sistema.</small></p>
         </div>
       <?php else: ?>
         <form method="POST" action="" id="formEscolherOng">
           <div class="ongs-list" id="ongsList">
-            <?php 
-            // Filtrar ONGs baseado na busca
+            <?php
             $ongs_filtradas = $ongs;
             if (!empty($buscar_ong)) {
                 $busca = strtolower(trim($buscar_ong));
@@ -298,18 +243,17 @@ $mostrar_formulario = !empty($ong_escolhida);
                            stripos(strtolower($ong['email'] ?? ''), $busca) !== false;
                 });
             }
-            
+
             if (empty($ongs_filtradas)): ?>
               <div class="no-ongs">
                 <p>Nenhuma ONG encontrada para "<?= htmlspecialchars($buscar_ong) ?>"</p>
-                <p><small>Tente buscar por outro termo</small></p>
               </div>
             <?php else: ?>
               <?php foreach ($ongs_filtradas as $ong): ?>
-                <div class="ong-card" 
+                <div class="ong-card"
                      data-id="<?= $ong['id_usuario'] ?>"
-                     data-nome="<?= htmlspecialchars($ong['nome'] ?? 'Sem nome') ?>"
-                     data-descricao="<?= htmlspecialchars($ong['descricao'] ?? 'Sem descrição') ?>"
+                     data-nome="<?= htmlspecialchars($ong['nome'] ?? '') ?>"
+                     data-descricao="<?= htmlspecialchars($ong['descricao'] ?? '') ?>"
                      onclick="selecionarOng(<?= $ong['id_usuario'] ?>, '<?= htmlspecialchars(addslashes($ong['nome'] ?? '')) ?>')">
                   <h3><?= htmlspecialchars($ong['nome'] ?? 'Instituição sem nome') ?></h3>
                   <?php if (!empty($ong['email'])): ?>
@@ -319,38 +263,30 @@ $mostrar_formulario = !empty($ong_escolhida);
                     <p><?= htmlspecialchars(mb_strlen($ong['descricao']) > 100 ? mb_substr($ong['descricao'], 0, 100) . '...' : $ong['descricao']) ?></p>
                   <?php endif; ?>
                   <?php if (!empty($ong['endereco'])): ?>
-                    <div class="endereco">
-                      📍 <?= htmlspecialchars(mb_strlen($ong['endereco']) > 60 ? mb_substr($ong['endereco'], 0, 60) . '...' : $ong['endereco']) ?>
-                    </div>
+                    <div class="endereco">📍 <?= htmlspecialchars(mb_strlen($ong['endereco']) > 60 ? mb_substr($ong['endereco'], 0, 60) . '...' : $ong['endereco']) ?></div>
                   <?php endif; ?>
                   <?php if (!empty($ong['cpf_cnpj'])): ?>
                     <div class="cnpj">CNPJ: <?= htmlspecialchars($ong['cpf_cnpj']) ?></div>
                   <?php endif; ?>
-                  <input type="radio" name="ong_escolhida" value="<?= $ong['id_usuario'] ?>" 
-                         <?= $ong_escolhida == $ong['id_usuario'] ? 'checked' : '' ?> 
+                  <input type="radio" name="ong_escolhida" value="<?= $ong['id_usuario'] ?>"
+                         <?= $ong_escolhida == $ong['id_usuario'] ? 'checked' : '' ?>
                          style="display:none;">
                 </div>
               <?php endforeach; ?>
             <?php endif; ?>
           </div>
-          
-          <!-- BOTÕES CENTRALIZADOS E VERTICALMENTE -->
+
           <div class="action-buttons-vertical">
-            <button type="button" class="btn-secondary" onclick="window.location.href='feed.php'">
-              Cancelar
-            </button>
-            <button type="submit" name="escolher_ong" class="btn-primary" id="btnEscolherOng" disabled>
-              Continuar
-            </button>
+            <button type="button" class="btn-secondary" onclick="window.location.href='feed.php'">Cancelar</button>
+            <button type="submit" name="escolher_ong" class="btn-primary" id="btnEscolherOng" disabled>Continuar</button>
           </div>
         </form>
       <?php endif; ?>
     </div>
-    
+
     <?php else: ?>
-    <!-- TELA DE AGENDAMENTO -->
-    
-    <!-- INFO DA ONG SELECIONADA -->
+    <!-- ===== TELA DE AGENDAMENTO ===== -->
+
     <?php if ($ong_selecionada): ?>
     <div class="ong-info">
       <div><strong>ONG selecionada:</strong> <?= htmlspecialchars($ong_selecionada['nome']) ?></div>
@@ -375,31 +311,23 @@ $mostrar_formulario = !empty($ong_escolhida);
     <form method="POST" action="">
       <input type="hidden" name="ong_escolhida" value="<?= $ong_escolhida ?>">
 
-      <!-- TIPO DE DOAÇÃO -->
       <div class="section">Tipo de Doação</div>
       <div class="tipo-doacao">
-        <button type="button" class="tipo-btn <?= $tipo_doacao == 'ITEM' ? 'selected' : '' ?>" onclick="selectTipo('ITEM')">
-          📦 Itens
-        </button>
-        <button type="button" class="tipo-btn <?= $tipo_doacao == 'DINHEIRO' ? 'selected' : '' ?>" onclick="selectTipo('DINHEIRO')">
-          💰 Dinheiro
-        </button>
+        <button type="button" class="tipo-btn <?= $tipo_doacao == 'ITEM' ? 'selected' : '' ?>" onclick="selectTipo('ITEM')">📦 Itens</button>
+        <button type="button" class="tipo-btn <?= $tipo_doacao == 'DINHEIRO' ? 'selected' : '' ?>" onclick="selectTipo('DINHEIRO')">💰 Dinheiro</button>
       </div>
       <input type="hidden" name="tipo_doacao" id="tipo_doacao" value="<?= htmlspecialchars($tipo_doacao) ?>">
 
-      <!-- DESCRIÇÃO DOS ITENS (aparece apenas para doação de itens) -->
       <div class="descricao-item" id="descricaoItemContainer">
         <div class="section">Descrição dos Itens</div>
-        <textarea name="descricao_item" placeholder="Descreva os itens que serão doados (roupas, calçados, alimentos, brinquedos, etc.)"><?= htmlspecialchars($descricao_item) ?></textarea>
+        <textarea name="descricao_item" placeholder="Descreva os itens que serão doados..."><?= htmlspecialchars($descricao_item) ?></textarea>
       </div>
 
-      <!-- VALOR DA DOAÇÃO (aparece apenas para doação em dinheiro) -->
       <div class="valor-doacao" id="valorDoacaoContainer">
         <div class="section">Valor da Doação (R$)</div>
         <input type="number" name="valor_doacao" placeholder="0,00" step="0.01" min="0" value="<?= htmlspecialchars($valor_doacao) ?>">
       </div>
 
-      <!-- Data Selecionada -->
       <?php if ($data_selecionada): ?>
       <div class="selected-info">
         <div><strong>Doação:</strong> <?= $tipo_doacao == 'ITEM' ? 'Itens' : 'Dinheiro' ?></div>
@@ -418,14 +346,11 @@ $mostrar_formulario = !empty($ong_escolhida);
       </div>
       <?php endif; ?>
 
-      <!-- CALENDÁRIO INTERATIVO -->
       <div class="calendar">
         <div class="month">Abril 2025</div>
-
         <div class="weekdays">
           <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
         </div>
-
         <div class="days">
           <span></span><span></span>
           <span class="day" onclick="selectDate('2025-04-01')">1</span>
@@ -464,7 +389,6 @@ $mostrar_formulario = !empty($ong_escolhida);
 
       <input type="hidden" name="data_coleta" id="data_coleta" value="<?= htmlspecialchars($data_selecionada) ?>">
 
-      <!-- HORÁRIOS -->
       <div class="section">Horários disponíveis</div>
       <div class="times">
         <button type="button" class="time-btn" onclick="selectTime('08:00')">8:00</button>
@@ -479,7 +403,6 @@ $mostrar_formulario = !empty($ong_escolhida);
 
       <input type="hidden" name="horario" id="horario" value="<?= htmlspecialchars($horario_selecionado) ?>">
 
-      <!-- LOCAL -->
       <div class="section">Local de coleta</div>
       <div class="select-wrapper">
         <select name="local_coleta" required>
@@ -496,42 +419,22 @@ $mostrar_formulario = !empty($ong_escolhida);
         </select>
       </div>
 
-      <!-- BOTÕES AÇÃO - CENTRALIZADOS E VERTICALMENTE -->
       <div class="form-buttons-container">
-        <button type="submit" name="agendar" class="btn-primary" id="btnAgendar" disabled>
-          ✅ Agendar
-        </button>
-        <button type="button" class="btn-secondary" onclick="window.location.href='agendar_coleta.php?cancelar_ong=1'">
-          🔄 Trocar ONG
-        </button>
+        <button type="submit" name="agendar" class="btn-primary" id="btnAgendar" disabled>✅ Agendar</button>
+        <button type="button" class="btn-secondary" onclick="window.location.href='agendar_coleta.php'">🔄 Trocar ONG</button>
       </div>
     </form>
     <?php endif; ?>
-  </div>
 
-  <!-- MENU INFERIOR FIXO -->
+  </div><!-- fim main-content -->
+
+  <!-- MENU INFERIOR -->
   <div class="bottom">
-    <a href="feed.php" class="menu-item">
-      🏠
-      <span>Feed</span>
-    </a>
-    <a href="campanhas.php" class="menu-item">
-      📢
-      <span>Campanhas</span>
-    </a>
-    
-    <!-- BOTÃO + CENTRAL -->
+    <a href="feed.php" class="menu-item">🏠<span>Feed</span></a>
+    <a href="campanhas.php" class="menu-item">📢<span>Campanhas</span></a>
     <button class="plus-btn" onclick="window.location.href='agendar_coleta.php'">+</button>
-    
-    <a href="notificacoes.php" class="menu-item">
-      🔔
-      <span>Notificações</span>
-    </a>
-    
-    <a href="perfil.php" class="menu-item">
-      👤
-      <span>Perfil</span>
-    </a>
+    <a href="notificacoes.php" class="menu-item">🔔<span>Notificações</span></a>
+    <a href="perfil.php" class="menu-item">👤<span>Perfil</span></a>
   </div>
 
 </div>
@@ -540,115 +443,45 @@ $mostrar_formulario = !empty($ong_escolhida);
 let selectedDate = '';
 let selectedTime = '';
 let selectedTipo = '<?= $tipo_doacao ?>';
-let selectedOng = '';
 
-// Função para filtrar ONGs em tempo real
 function filterOngs() {
-    const searchInput = document.getElementById('searchInput');
-    const searchTerm = searchInput.value.toLowerCase().trim();
-    const ongCards = document.querySelectorAll('.ong-card');
-    let hasVisibleCards = false;
-    
-    ongCards.forEach(card => {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+    document.querySelectorAll('.ong-card').forEach(card => {
         const nome = card.getAttribute('data-nome').toLowerCase();
-        const descricao = card.getAttribute('data-descricao').toLowerCase();
-        
-        if (searchTerm === '' || 
-            nome.includes(searchTerm) || 
-            descricao.includes(searchTerm)) {
-            card.style.display = 'block';
-            hasVisibleCards = true;
-        } else {
-            card.style.display = 'none';
-        }
+        const desc = card.getAttribute('data-descricao').toLowerCase();
+        card.style.display = (searchTerm === '' || nome.includes(searchTerm) || desc.includes(searchTerm)) ? 'block' : 'none';
     });
-    
-    // Atualizar botão de continuar
     checkOngSelection();
 }
 
-// Função para selecionar ONG
 function selecionarOng(idOng, nomeOng) {
-    selectedOng = idOng;
-    
-    // Remover seleção anterior
-    document.querySelectorAll('.ong-card.selected').forEach(el => {
-        el.classList.remove('selected');
-    });
-    
-    // Adicionar seleção atual
+    document.querySelectorAll('.ong-card.selected').forEach(el => el.classList.remove('selected'));
     const card = event.currentTarget;
     card.classList.add('selected');
-    
-    // Marcar o radio button
     const radio = card.querySelector('input[type="radio"]');
-    if (radio) {
-        radio.checked = true;
-    }
-    
-    // Atualizar botão de continuar
+    if (radio) radio.checked = true;
     checkOngSelection();
-    
-    console.log('ONG selecionada:', idOng, nomeOng); // Debug
 }
 
-// Verificar se uma ONG foi selecionada
 function checkOngSelection() {
-    const btnEscolherOng = document.getElementById('btnEscolherOng');
-    if (!btnEscolherOng) return;
-    
-    // Verificar se algum radio está marcado
-    const radios = document.querySelectorAll('input[name="ong_escolhida"]');
-    let isSelected = false;
-    
-    radios.forEach(radio => {
-        if (radio.checked) {
-            isSelected = true;
-        }
-    });
-    
-    // Verificar se há pelo menos um card visível
-    const visibleCards = document.querySelectorAll('.ong-card');
-    const hasVisibleOngs = visibleCards.length > 0;
-    
-    // Habilitar/desabilitar botão
-    if (isSelected && hasVisibleOngs) {
-        btnEscolherOng.disabled = false;
-        console.log('Botão habilitado'); // Debug
-    } else {
-        btnEscolherOng.disabled = true;
-        console.log('Botão desabilitado'); // Debug
-    }
+    const btn = document.getElementById('btnEscolherOng');
+    if (!btn) return;
+    const checked = document.querySelector('input[name="ong_escolhida"]:checked');
+    btn.disabled = !checked;
 }
 
-// Mostrar/ocultar campos baseado no tipo selecionado
 function updateTipoDisplay() {
     const descricaoContainer = document.getElementById('descricaoItemContainer');
-    const valorContainer = document.getElementById('valorDoacaoContainer');
-    
-    if (selectedTipo === 'ITEM') {
-        if (descricaoContainer) descricaoContainer.style.display = 'block';
-        if (valorContainer) valorContainer.style.display = 'none';
-    } else if (selectedTipo === 'DINHEIRO') {
-        if (descricaoContainer) descricaoContainer.style.display = 'none';
-        if (valorContainer) valorContainer.style.display = 'block';
-    } else {
-        if (descricaoContainer) descricaoContainer.style.display = 'none';
-        if (valorContainer) valorContainer.style.display = 'none';
-    }
+    const valorContainer     = document.getElementById('valorDoacaoContainer');
+    if (descricaoContainer) descricaoContainer.style.display = selectedTipo === 'ITEM'     ? 'block' : 'none';
+    if (valorContainer)     valorContainer.style.display     = selectedTipo === 'DINHEIRO' ? 'block' : 'none';
     checkFormCompletion();
 }
 
 function selectTipo(tipo) {
     selectedTipo = tipo;
     document.getElementById('tipo_doacao').value = tipo;
-    
-    // Remover seleção anterior
-    document.querySelectorAll('.tipo-btn.selected').forEach(el => {
-        el.classList.remove('selected');
-    });
-    
-    // Adicionar seleção atual
+    document.querySelectorAll('.tipo-btn.selected').forEach(el => el.classList.remove('selected'));
     event.target.classList.add('selected');
     updateTipoDisplay();
 }
@@ -656,13 +489,7 @@ function selectTipo(tipo) {
 function selectDate(date) {
     selectedDate = date;
     document.getElementById('data_coleta').value = date;
-    
-    // Remover seleção anterior
-    document.querySelectorAll('.day.selected').forEach(el => {
-        el.classList.remove('selected');
-    });
-    
-    // Adicionar seleção atual
+    document.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
     event.target.classList.add('selected');
     checkFormCompletion();
 }
@@ -670,132 +497,77 @@ function selectDate(date) {
 function selectTime(time) {
     selectedTime = time;
     document.getElementById('horario').value = time;
-    
-    // Remover seleção anterior
-    document.querySelectorAll('.time-btn.selected').forEach(el => {
-        el.classList.remove('selected');
-    });
-    
-    // Adicionar seleção atual
+    document.querySelectorAll('.time-btn.selected').forEach(el => el.classList.remove('selected'));
     event.target.classList.add('selected');
     checkFormCompletion();
 }
 
 function checkFormCompletion() {
-    const data = document.getElementById('data_coleta');
+    const data    = document.getElementById('data_coleta');
     const horario = document.getElementById('horario');
-    const local = document.querySelector('select[name="local_coleta"]');
-    const descricaoItem = document.querySelector('textarea[name="descricao_item"]');
-    const valorDoacao = document.querySelector('input[name="valor_doacao"]');
-    const btnAgendar = document.getElementById('btnAgendar');
-    
-    if (!btnAgendar) return;
-    
-    let isValid = data && data.value && horario && horario.value && local && local.value;
-    
-    // Validações específicas por tipo
-    if (selectedTipo === 'ITEM' && descricaoItem) {
-        isValid = isValid && descricaoItem.value.trim() !== '';
-    } else if (selectedTipo === 'DINHEIRO' && valorDoacao) {
-        isValid = isValid && valorDoacao.value.trim() !== '' && parseFloat(valorDoacao.value) > 0;
+    const local   = document.querySelector('select[name="local_coleta"]');
+    const btn     = document.getElementById('btnAgendar');
+    if (!btn) return;
+
+    let isValid = data?.value && horario?.value && local?.value;
+
+    if (selectedTipo === 'ITEM') {
+        const desc = document.querySelector('textarea[name="descricao_item"]');
+        isValid = isValid && desc?.value.trim() !== '';
+    } else if (selectedTipo === 'DINHEIRO') {
+        const val = document.querySelector('input[name="valor_doacao"]');
+        isValid = isValid && val?.value.trim() !== '' && parseFloat(val.value) > 0;
     }
-    
-    if (isValid) {
-        btnAgendar.disabled = false;
-    } else {
-        btnAgendar.disabled = true;
-    }
+
+    btn.disabled = !isValid;
 }
 
-// Verificar quando o select muda
-const localSelect = document.querySelector('select[name="local_coleta"]');
-if (localSelect) {
-    localSelect.addEventListener('change', checkFormCompletion);
-}
-
-// Verificar quando a descrição muda
-const descricaoItem = document.querySelector('textarea[name="descricao_item"]');
-if (descricaoItem) {
-    descricaoItem.addEventListener('input', checkFormCompletion);
-}
-
-// Verificar quando o valor muda
-const valorDoacaoInput = document.querySelector('input[name="valor_doacao"]');
-if (valorDoacaoInput) {
-    valorDoacaoInput.addEventListener('input', checkFormCompletion);
-}
-
-// Verificar seleção de ONG ao carregar
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Página carregada');
-    
-    // Forçar a verificação inicial
+document.addEventListener('DOMContentLoaded', function () {
     checkOngSelection();
     updateTipoDisplay();
-    
-    // Adicionar evento de clique para cada card de ONG
-    const cards = document.querySelectorAll('.ong-card');
-    cards.forEach(card => {
-        card.addEventListener('click', function(e) {
-            // Evitar que o clique se propague
+
+    // Clique nos cards de ONG
+    document.querySelectorAll('.ong-card').forEach(card => {
+        card.addEventListener('click', function (e) {
             e.stopPropagation();
-            
-            // Remover seleção de todos os cards
-            cards.forEach(c => c.classList.remove('selected'));
-            
-            // Adicionar seleção ao card clicado
+            document.querySelectorAll('.ong-card').forEach(c => c.classList.remove('selected'));
             this.classList.add('selected');
-            
-            // Marcar o radio button correspondente
             const radio = this.querySelector('input[type="radio"]');
-            if (radio) {
-                radio.checked = true;
-                console.log('Radio marcado:', radio.value);
-            }
-            
-            // Habilitar botão
+            if (radio) radio.checked = true;
             const btn = document.getElementById('btnEscolherOng');
-            if (btn) {
-                btn.disabled = false;
-                console.log('Botão habilitado');
-            }
+            if (btn) btn.disabled = false;
         });
     });
-    
-    // Verificar se algum radio já está marcado (para ONGs pré-selecionadas)
-    const radios = document.querySelectorAll('input[name="ong_escolhida"]');
-    radios.forEach(radio => {
+
+    // Verificar radio pré-marcado
+    document.querySelectorAll('input[name="ong_escolhida"]').forEach(radio => {
         if (radio.checked) {
             const parentCard = radio.closest('.ong-card');
             if (parentCard) {
                 parentCard.classList.add('selected');
                 const btn = document.getElementById('btnEscolherOng');
                 if (btn) btn.disabled = false;
-                console.log('Radio pré-marcado:', radio.value);
             }
         }
     });
-    
-    // Configurar busca em tempo real
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.addEventListener('input', filterOngs);
-    }
-    
-    // Auto-fechar mensagem de sucesso após 5 segundos
-    const successMessage = document.getElementById('successMessage');
-    if (successMessage) {
+
+    // Eventos de input
+    document.querySelector('select[name="local_coleta"]')?.addEventListener('change', checkFormCompletion);
+    document.querySelector('textarea[name="descricao_item"]')?.addEventListener('input', checkFormCompletion);
+    document.querySelector('input[name="valor_doacao"]')?.addEventListener('input', checkFormCompletion);
+    document.getElementById('searchInput')?.addEventListener('input', filterOngs);
+
+    // Auto-fechar sucesso
+    const successMsg = document.getElementById('successMessage');
+    if (successMsg) {
         setTimeout(() => {
-            successMessage.style.opacity = '0';
-            successMessage.style.transition = 'opacity 0.5s ease';
-            setTimeout(() => {
-                successMessage.style.display = 'none';
-            }, 500);
+            successMsg.style.transition = 'opacity 0.5s ease';
+            successMsg.style.opacity = '0';
+            setTimeout(() => successMsg.style.display = 'none', 500);
         }, 5000);
     }
 });
 
-// Prevenir scroll do body
 document.body.style.overflow = 'hidden';
 </script>
 </body>

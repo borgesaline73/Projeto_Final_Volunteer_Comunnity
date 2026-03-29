@@ -72,13 +72,18 @@ if ($tipoUsuario === "instituicao") {
           ?>
             <div class="post-card-solidario">
               <div class="post-header">
-                <div class="post-avatar">🤝</div>
+              <a href="perfil-ong-publico.php?id=<?= $post['id_ong'] ?>">
+                  <div class="post-avatar">🤝</div>
+              </a>
                 <div class="post-org-info">
                   <h3><?= htmlspecialchars($post['titulo']) ?></h3>
-                  <div class="post-meta">
-                    Publicado por <strong><?= htmlspecialchars($post['nome']) ?></strong> • 
-                    <?= date("d/m/Y \à\s H:i", strtotime($post['data_post'])) ?>
-                  </div>
+                <div class="post-meta">
+                    Publicado por 
+                    <a href="perfil-ong-publico.php?id=<?= $post['id_ong'] ?>" class="link-ong">
+                      <strong><?= htmlspecialchars($post['nome']) ?></strong>
+                    </a> • 
+                  <?= date("d/m/Y \à\s H:i", strtotime($post['data_post'])) ?>
+                </div>
                 </div>
               </div>
 
@@ -107,13 +112,20 @@ if ($tipoUsuario === "instituicao") {
 
               <!-- BOTÃO EFETUAR DOAÇÃO - APENAS PARA DOADORES -->
               <?php if ($tipoUsuario === "doador"): ?>
-                <button class="doacao-btn" onclick="efetuarDoacao(<?= $post['id_ong'] ?>, '<?= htmlspecialchars(addslashes($post['titulo'])) ?>')">
-                  💝 Efetuar Doação para esta ONG
-                </button>
+                <div class="post-acoes">
+                <a href="perfil-ong-publico.php?id=<?= $post['id_ong'] ?>" class="btn-ver-ong">
+                  <span style="font-size:14px; line-height:1;">🏢</span> Ver ONG
+                </a>
+                  <button class="doacao-btn" onclick="efetuarDoacao(<?= $post['id_ong'] ?>, '<?= htmlspecialchars(addslashes($post['titulo'])) ?>')">
+                    💝 Efetuar Doação
+                  </button>
+                </div>
               <?php elseif ($tipoUsuario === "instituicao"): ?>
-                <button class="doacao-btn" disabled>
-                  ⚠️ Apenas doadores podem efetuar doações
-                </button>
+                <div class="post-acoes">
+                  <a href="perfil-ong-publico.php?id=<?= $post['id_ong'] ?>" class="btn-ver-ong">
+                    🏢 Ver ONG
+                  </a>
+                </div>
               <?php endif; ?>
             </div>
           <?php endforeach; ?>
