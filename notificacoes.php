@@ -416,6 +416,10 @@ if ($tipo === "instituicao") {
       🏠
       <span>Feed</span>
     </a>
+    <a href="campanhas.php" class="menu-item">
+      📢
+      <span>Campanhas</span>
+    </a>
 
     <button class="plus-btn" onclick="window.location.href='<?= $rotaPlus ?>'">+</button>
 

@@ -29,36 +29,37 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Volunteer Community – Login</title>
+
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/estilo_global.css">
   <link rel="stylesheet" href="css/estilo_login.css">
 </head>
+
 <body>
 
-  <section class="login-screen">
-    <div class="header">
-      <img src="imagens/logo.png" alt="Volunteer" class="logo">
-    </div>
-    <h2>Bem vindo de volta!</h2>
+<section class="login-screen">
 
-    <form class="form" action="login.php" method="post">
-      <input type="text" name="email" placeholder="E-mail / usuário" required>
-      <input type="password" name="senha" placeholder="Senha" required>
-      <button type="submit" class="btn primary">Acessar</button>
-    </form>
+  <div class="header">
+    <img src="imagens/logo.png" alt="Volunteer" class="logo">
+  </div>
 
-    <a href="#" class="forgot">Esqueceu sua senha?</a>
-    <div class="divider">ou</div>
-    <button class="btn facebook" onclick="mostrarAlerta('Facebook')">Log in with Facebook</button>
-    <button class="btn google" onclick="mostrarAlerta('Google')">Log in with Google</button>
-    <p class="signup">Não possui conta? <a href="cadastro.php">Crie agora</a></p>
-  </section>
+  <h2>Bem vindo de volta!</h2>
 
-  <script>
-    function mostrarAlerta(provedor) {
-      alert(`⚠️ A API de login com ${provedor} está temporariamente fora do ar.\n\nPor favor, utilize o login tradicional.`);
-    }
-  </script>
+  <form class="form" action="login.php" method="post">
+    <input type="text" name="email" placeholder="E-mail / usuário" required>
+    <input type="password" name="senha" placeholder="Senha" required>
+    <button type="submit" class="btn primary">Acessar</button>
+  </form>
+
+  <a href="#" class="forgot">Esqueceu sua senha?</a>
+
+  <!-- 🔥 REMOVIDO: divisor e botões sociais -->
+
+  <p class="signup">
+    Não possui conta? <a href="cadastro.php">Crie agora</a>
+  </p>
+
+</section>
 
 </body>
 </html>

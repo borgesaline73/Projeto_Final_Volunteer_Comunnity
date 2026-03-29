@@ -515,6 +515,10 @@ $mostrar_formulario = !empty($ong_escolhida);
       🏠
       <span>Feed</span>
     </a>
+    <a href="campanhas.php" class="menu-item">
+      📢
+      <span>Campanhas</span>
+    </a>
     
     <!-- BOTÃO + CENTRAL -->
     <button class="plus-btn" onclick="window.location.href='agendar_coleta.php'">+</button>
