@@ -30,7 +30,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Volunteer Community – Login</title>
 
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/estilo_global.css">
   <link rel="stylesheet" href="css/estilo_login.css">
 </head>
@@ -39,25 +39,35 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 <section class="login-screen">
 
+  <!-- ── Header laranja com curva ── -->
   <div class="header">
-    <img src="imagens/logo.png" alt="Volunteer" class="logo">
+    <a href="index.php" class="btn-back" aria-label="Voltar">&#8592;</a>
+
+    <div class="logo-wrapper">
+      <img src="imagens/logo.png" alt="Volunteer Community" class="logo">
+      <span class="logo-text">Volunteer</span>
+      <span class="logo-sub">Community</span>
+    </div>
   </div>
 
-  <h2>Bem vindo de volta!</h2>
+  <!-- ── Conteúdo principal ── -->
+  <div class="content">
 
-  <form class="form" action="login.php" method="post">
-    <input type="text" name="email" placeholder="E-mail / usuário" required>
-    <input type="password" name="senha" placeholder="Senha" required>
-    <button type="submit" class="btn primary">Acessar</button>
-  </form>
+    <h2>Bem vindo de volta!</h2>
 
-  <a href="#" class="forgot">Esqueceu sua senha?</a>
+    <form class="form" action="login.php" method="post">
+      <input type="text"     name="email" placeholder="E-mail / usuário" required>
+      <input type="password" name="senha" placeholder="Senha"            required>
+      <button type="submit" class="btn primary">Acessar</button>
+    </form>
 
-  <!-- 🔥 REMOVIDO: divisor e botões sociais -->
+    <a href="recuperar_senha.php" class="forgot">Esqueceu sua senha?</a>
 
-  <p class="signup">
-    Não possui conta? <a href="cadastro.php">Crie agora</a>
-  </p>
+    <p class="signup">
+      Não possui conta? <a href="cadastro.php">Crie agora</a>
+    </p>
+
+  </div><!-- /content -->
 
 </section>
 

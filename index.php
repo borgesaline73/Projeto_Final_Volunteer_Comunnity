@@ -42,7 +42,7 @@
     display:flex; flex-direction:column; align-items:center; gap:24px;
     text-align:center;
   }
-  .logo{width:84px; height:auto; display:block}
+  .logo{width:140px; height:auto; display:block}
   .title{margin:8px 0 0; font-size:36px; font-weight:800;}
   .subtitle{margin-top:-2px; font-size:12px; letter-spacing:.38em; color:var(--muted)}
   .actions{width:100%; display:flex; flex-direction:column; gap:14px;}
@@ -58,14 +58,13 @@
   .divider::before,.divider::after{content:""; height:1px; flex:1; background:linear-gradient(90deg,transparent,#ffffff35,transparent)}
   .btn.ghost{ background:rgba(255,255,255,.06); color:var(--brand); border:1px solid rgba(255,255,255,.14); }
   .btn.ghost:hover{ background:rgba(255,255,255,.10); }
-
   </style>
 </head>
 <body>
 
 <section class="hero">
   <div class="card">
-    <img src="imagens\logo.png" alt="Volunteer Community" class="logo">
+    <img src="imagens/logo.png" alt="Volunteer Community" class="logo">
     <h1 class="title">Volunteer</h1>
     <div class="subtitle">COMMUNITY</div>
     <div class="actions">

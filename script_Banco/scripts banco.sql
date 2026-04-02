@@ -109,6 +109,25 @@ CREATE TABLE coletas_visualizadas (
     UNIQUE (id_ong, id_doacao)
 );
 
+CREATE TABLE itens_ong (
+  id_item   SERIAL PRIMARY KEY,
+  id_ong    INT NOT NULL,
+  nome      VARCHAR(100) NOT NULL,
+  tipo      VARCHAR(10) NOT NULL CHECK (tipo IN ('ACEITO', 'RECUSADO')),
+  criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (id_ong) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
+)
+
+CREATE TABLE destino_doacoes (
+  id_destino SERIAL PRIMARY KEY,
+  id_ong     INT NOT NULL,
+  titulo     VARCHAR(150) NOT NULL,
+  descricao  TEXT NOT NULL,
+  imagem     VARCHAR(255),
+  criado_em  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (id_ong) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
+);
+
 -- ===========================================
 -- CRIAR ÍNDICES PARA PERFORMANCE
 -- ===========================================

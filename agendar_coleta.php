@@ -360,9 +360,9 @@ $mostrar_formulario = !empty($ong_escolhida);
           <span class="day" onclick="selectDate('2025-04-05')">5</span>
           <span class="day" onclick="selectDate('2025-04-06')">6</span>
           <span class="day" onclick="selectDate('2025-04-07')">7</span>
-          <span class="day highlight" onclick="selectDate('2025-04-08')">8</span>
-          <span class="day highlight" onclick="selectDate('2025-04-09')">9</span>
-          <span class="day highlight" onclick="selectDate('2025-04-10')">10</span>
+          <span class="day" onclick="selectDate('2025-04-08')">8</span>
+          <span class="day" onclick="selectDate('2025-04-09')">9</span>
+          <span class="day" onclick="selectDate('2025-04-10')">10</span>
           <span class="day" onclick="selectDate('2025-04-11')">11</span>
           <span class="day" onclick="selectDate('2025-04-12')">12</span>
           <span class="day" onclick="selectDate('2025-04-13')">13</span>
@@ -370,7 +370,7 @@ $mostrar_formulario = !empty($ong_escolhida);
           <span class="day" onclick="selectDate('2025-04-15')">15</span>
           <span class="day" onclick="selectDate('2025-04-16')">16</span>
           <span class="day" onclick="selectDate('2025-04-17')">17</span>
-          <span class="day highlight" onclick="selectDate('2025-04-18')">18</span>
+          <span class="day" onclick="selectDate('2025-04-18')">18</span>
           <span class="day" onclick="selectDate('2025-04-19')">19</span>
           <span class="day" onclick="selectDate('2025-04-20')">20</span>
           <span class="day" onclick="selectDate('2025-04-21')">21</span>
