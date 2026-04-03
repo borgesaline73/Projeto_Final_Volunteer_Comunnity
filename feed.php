@@ -2,6 +2,14 @@
 session_start();
 require "banco.php";
 
+// ===== CAPTURAR MENSAGEM DE SUCESSO DA URL =====
+$mensagem_flash = '';
+$tipo_flash = '';
+if (isset($_GET['msg']) && isset($_GET['tipo'])) {
+    $mensagem_flash = urldecode($_GET['msg']);
+    $tipo_flash = $_GET['tipo'];
+}
+
 // Verificar se usuário está logado
 if (!isset($_SESSION["usuario_id"])) {
     header("Location: login.php");
@@ -25,18 +33,60 @@ if ($tipoUsuario === "instituicao") {
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Conexão Solidária - Volunteer Community</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="css/estilo_global.css">
 <link rel="stylesheet" href="css/estilo_feed.css">
+
+<!-- SweetAlert2 CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+<style>
+    /* Estilo para confinar o SweetAlert dentro do telefone */
+    .phone {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .swal2-container.swal-inside-feed {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        z-index: 9999;
+    }
+
+    .swal2-container.swal-inside-feed .swal2-popup {
+        width: 88% !important;
+        max-width: 320px !important;
+        border-radius: 20px !important;
+        font-family: 'Poppins', sans-serif !important;
+    }
+
+    .swal2-confirm {
+        background-color: #f4822f !important;
+        border-radius: 50px !important;
+        padding: 8px 20px !important;
+        font-weight: 600 !important;
+        font-size: 13px !important;
+    }
+
+    .swal2-cancel {
+        border-radius: 50px !important;
+        padding: 8px 20px !important;
+        font-weight: 600 !important;
+        font-size: 13px !important;
+    }
+</style>
 </head>
 
 <body>
 
-<div class="phone">
+<div class="phone" id="phoneWrapper">
 
   <!-- HEADER -->
   <div class="header">
@@ -171,15 +221,49 @@ if ($tipoUsuario === "instituicao") {
   </div>
 </div>
 
+<!-- SweetAlert2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
-// Função para efetuar doação
-function efetuarDoacao(idOng, tituloOng) {
-    if (confirm(`Deseja efetuar uma doação para a ONG: "${tituloOng}"?`)) {
+// ─── Referência ao elemento .phone para confinar os modais ───────────────────
+const phoneEl = document.getElementById('phoneWrapper');
+
+const swalFeed = Swal.mixin({
+    target: phoneEl,
+    confirmButtonColor: '#f4822f',
+    cancelButtonColor: '#aaa',
+    customClass: {
+        container: 'swal-inside-feed',
+        popup: 'swal-popup-feed'
+    }
+});
+
+// ===== FUNÇÃO PARA EFETUAR DOAÇÃO COM SWEETALERT2 =====
+async function efetuarDoacao(idOng, tituloOng) {
+    const result = await swalFeed.fire({
+        title: '💝 Fazer Doação',
+        html: `
+            <div style="text-align: left;">
+                <p>Você está prestes a doar para:</p>
+                <p><strong>🏢 ${tituloOng}</strong></p>
+                <hr style="margin: 12px 0;">
+                <p style="font-size: 13px; color: #666;">Clique em "Continuar" para agendar sua coleta.</p>
+            </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: '✅ Continuar',
+        cancelButtonText: '❌ Cancelar',
+        confirmButtonColor: '#f4822f',
+        cancelButtonColor: '#aaa'
+    });
+
+    if (result.isConfirmed) {
         window.location.href = `agendar_coleta.php?ong=${idOng}&titulo=${encodeURIComponent(tituloOng)}`;
     }
 }
 
-// Função para expandir/recolher conteúdo
+// ===== FUNÇÃO PARA EXPANDIR/RECOLHER CONTEÚDO =====
 function toggleContent(postId, button) {
     const content = document.getElementById('content-' + postId);
     const isExpanded = content.classList.contains('expanded');
@@ -193,6 +277,51 @@ function toggleContent(postId, button) {
     }
 }
 
+// ===== MOSTRAR MENSAGEM FLASH (SUCESSO DO AGENDAMENTO) =====
+<?php if (!empty($mensagem_flash) && !empty($tipo_flash)): ?>
+document.addEventListener('DOMContentLoaded', function() {
+    swalFeed.fire({
+        title: '<?= $tipo_flash === 'success' ? '✅ Sucesso!' : '⚠️ Atenção' ?>',
+        text: '<?= htmlspecialchars($mensagem_flash) ?>',
+        icon: '<?= $tipo_flash ?>',
+        confirmButtonText: 'Ok',
+        timer: 4000,
+        timerProgressBar: true
+    }).then(() => {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('msg');
+        url.searchParams.delete('tipo');
+        window.history.replaceState({}, document.title, url.toString());
+    });
+});
+<?php endif; ?>
+
+// ===== MENSAGEM DE BOAS-VINDAS =====
+document.addEventListener('DOMContentLoaded', function() {
+    const lastVisit = localStorage.getItem('lastVisit');
+    const today = new Date().toDateString();
+    
+    if (lastVisit !== today && <?= $tipoUsuario === 'doador' ? 'true' : 'false' ?>) {
+        setTimeout(() => {
+            swalFeed.fire({
+                title: '🙏 Bem-vindo(a)!',
+                html: `
+                    <div style="text-align: center;">
+                        <p>Que tal fazer uma doação hoje?</p>
+                        <p style="font-size: 12px; color: #f4822f;">Cada gesto de solidariedade transforma vidas!</p>
+                    </div>
+                `,
+                icon: 'info',
+                confirmButtonText: 'Ver posts',
+                timer: 5000,
+                timerProgressBar: true
+            });
+            localStorage.setItem('lastVisit', today);
+        }, 1000);
+    }
+});
+
+// Prevenir scroll do body
 document.body.style.overflow = 'hidden';
 </script>
 

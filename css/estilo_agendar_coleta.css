@@ -1,425 +1,606 @@
 /* ===== ESTILO ESPECÍFICO DO AGENDAR COLETA ===== */
 
 body {
-    margin: 0;
-    background: var(--bg);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    padding: 20px;
-  }
-  
-  .phone {
-    width: 100%;
-    max-width: 430px;
-    background: var(--white);
-    height: 90vh;
-    max-height: 800px;
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    overflow: hidden;
-  }
-  
-  /* HEADER */
-  .header {
-    padding: 18px 20px 10px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: var(--white);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    border-bottom: 1px solid #f0f0f0;
-    flex-shrink: 0;
-  }
-  
-  .header-title {
-    flex: 1;
-    text-align: center;
-    font-weight: 600;
-    font-size: 16px;
-  }
-  
-  /* MENSAGEM DE SUCESSO */
-  .success-message {
-    background: #d4edda;
-    color: #155724;
-    padding: 12px 20px;
-    margin: 10px 20px;
-    border-radius: 12px;
-    text-align: center;
-    border-left: 4px solid var(--green);
-    animation: fadeIn 0.5s ease-in;
-  }
-  
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  
-  /* BUSCA DE ONG */
-  .busca-ong {
-    padding: 10px 20px;
-    margin-bottom: 10px;
-  }
-  
-  .search-box {
-    position: relative;
-    margin-bottom: 10px;
-  }
-  
-  .search-box input {
-    width: 100%;
-    padding: 12px 40px 12px 12px;
-    border-radius: 12px;
-    border: 1px solid #ddd;
-    font-size: 13px;
-    outline: none;
-    font-family: inherit;
-  }
-  
-  .search-box button {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: var(--orange);
-    font-size: 16px;
-    cursor: pointer;
-  }
-  
-  /* LISTA DE ONGS */
-  .ongs-list {
-    padding: 0 20px 10px;
-    max-height: 300px;
-    overflow-y: auto;
-  }
-  
-  .ong-card {
-    padding: 12px;
-    margin-bottom: 10px;
-    border-radius: 12px;
-    border: 1px solid #eee;
-    cursor: pointer;
-    transition: all 0.3s;
-  }
-  
-  .ong-card:hover {
-    border-color: var(--orange);
-    background: #fff8f0;
-  }
-  
-  .ong-card.selected {
-    border-color: var(--orange);
-    background: #fff8f0;
-  }
-  
-  .ong-card h3 {
-    margin: 0 0 5px 0;
-    font-size: 14px;
-    color: #333;
-  }
-  
-  .ong-card p {
-    margin: 0 0 5px 0;
-    font-size: 12px;
-    color: #666;
-  }
-  
-  .ong-card .categoria {
-    display: inline-block;
-    padding: 3px 8px;
-    background: #f0f0f0;
-    border-radius: 20px;
-    font-size: 11px;
-    color: #888;
-  }
-  
-  .ong-card .endereco {
-    font-size: 11px;
-    color: #888;
-    margin-top: 5px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-  
-  .ong-card .cnpj {
+  margin: 0;
+  background: var(--bg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.phone {
+  width: 100%;
+  max-width: 430px;
+  background: var(--white);
+  height: 90vh;
+  max-height: 800px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* HEADER */
+.header {
+  padding: 18px 20px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--white);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 1px solid #f0f0f0;
+  flex-shrink: 0;
+}
+
+.header-title {
+  flex: 1;
+  text-align: center;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+/* MENSAGEM DE SUCESSO */
+.success-message {
+  background: #d4edda;
+  color: #155724;
+  padding: 8px 14px;
+  margin: 8px 20px;
+  border-radius: 8px;
+  text-align: center;
+  border-left: 3px solid var(--green);
+  animation: fadeIn 0.5s ease-in;
+  font-size: 12px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* BUSCA DE ONG */
+.busca-ong {
+  padding: 8px 20px;
+  margin-bottom: 8px;
+}
+
+.search-box {
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 8px 32px 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 12px;
+  outline: none;
+  font-family: inherit;
+}
+
+.search-box button {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--orange);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* LISTA DE ONGS */
+.ongs-list {
+  padding: 0 20px 8px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.ong-card {
+  padding: 8px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.ong-card:hover {
+  border-color: var(--orange);
+  background: #fff8f0;
+}
+
+.ong-card.selected {
+  border-color: var(--orange);
+  background: #fff8f0;
+}
+
+.ong-card h3 {
+  margin: 0 0 3px 0;
+  font-size: 12px;
+  color: #333;
+}
+
+.ong-card p {
+  margin: 0 0 3px 0;
+  font-size: 10px;
+  color: #666;
+}
+
+.ong-card .endereco {
+  font-size: 9px;
+  color: #888;
+  margin-top: 3px;
+}
+
+.ong-card .cnpj {
+  font-size: 9px;
+  color: #999;
+  margin-top: 2px;
+}
+
+/* INFO ONG SELECIONADA */
+.ong-info {
+  background: #f0f8ff;
+  margin: 8px 20px;
+  padding: 8px;
+  border-radius: 8px;
+  border-left: 3px solid var(--orange);
+  font-size: 11px;
+}
+
+.ong-info div {
+  margin: 2px 0;
+}
+
+.ong-info strong {
+  color: var(--orange);
+}
+
+/* BOTÕES DE AÇÃO - ESCOLHER ONG */
+.action-buttons-vertical {
+  padding: 8px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 260px;
+  margin: 0 auto;
+}
+
+/* BOTÕES PRINCIPAIS - LADO A LADO */
+.form-buttons-container {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  max-width: 100%;
+  margin: 0 auto;
+  justify-content: center;
+}
+
+.form-buttons-container .btn-primary,
+.form-buttons-container .btn-secondary {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 12px;
+  border-radius: 25px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.btn-primary, .btn-secondary {
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: center;
+  display: inline-block;
+}
+
+.btn-primary {
+  background: var(--orange);
+  color: var(--white);
+  border: none;
+}
+
+.btn-primary:hover {
+  background: var(--orange-hover);
+}
+
+.btn-primary:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.btn-secondary {
+  background: var(--white);
+  color: var(--orange);
+  border: 1.5px solid var(--orange);
+}
+
+.btn-secondary:hover {
+  background: #fff8f0;
+}
+
+/* TIPO DOAÇÃO */
+.tipo-doacao {
+  padding: 8px 20px;
+  display: flex;
+  gap: 8px;
+}
+
+.tipo-btn {
+  flex: 1;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1.5px solid #ddd;
+  background: var(--white);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.tipo-btn.selected {
+  border-color: var(--orange);
+  background: #fff8f0;
+  color: var(--orange);
+}
+
+/* DESCRIÇÃO ITEM */
+.descricao-item {
+  padding: 0 20px 8px;
+  display: none;
+}
+
+.descricao-item textarea {
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 11px;
+  resize: vertical;
+  min-height: 60px;
+  outline: none;
+  font-family: inherit;
+}
+
+/* VALOR DOAÇÃO */
+.valor-doacao {
+  padding: 0 20px 8px;
+  display: none;
+}
+
+.valor-doacao input {
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 11px;
+  outline: none;
+  font-family: inherit;
+}
+
+/* CALENDÁRIO */
+.calendar {
+  padding: 0 20px 8px;
+}
+
+.month-selector {
+  padding: 5px 0;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.month-selector button {
+  background: #f0f0f0;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.month-selector button:hover {
+  background: #f4822f;
+  color: white;
+}
+
+.month-selector select {
+  padding: 6px 10px;
+  border-radius: 20px;
+  border: 1px solid #ddd;
+  font-size: 11px;
+  font-family: 'Poppins', sans-serif;
+  background: white;
+  cursor: pointer;
+}
+
+.month-selector .year-display {
+  font-weight: 600;
+  font-size: 12px;
+  color: #333;
+}
+
+.weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 9px;
+  color: #bbb;
+  margin-bottom: 4px;
+}
+
+.days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  gap: 2px;
+  font-size: 11px;
+}
+
+.day {
+  padding: 5px 0;
+  border-radius: 25px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.day.selected {
+  background: var(--orange);
+  color: var(--white);
+  font-weight: 600;
+}
+
+.day.highlight {
+  background: #ffe1c4;
+  color: #d96c16;
+  font-weight: 600;
+}
+
+.day:hover {
+  background: #f5f5f5;
+}
+
+/* HORÁRIOS */
+.section {
+  padding: 6px 20px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+}
+
+.times {
+  padding: 5px 20px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.time-btn {
+  padding: 5px 10px;
+  border-radius: 25px;
+  border: 1px solid #ffcf9e;
+  font-size: 11px;
+  background: var(--white);
+  color: #f08a24;
+  cursor: pointer;
+  transition: all 0.3s;
+  min-width: 52px;
+  text-align: center;
+}
+
+.time-btn.selected {
+  background: var(--orange);
+  color: var(--white);
+  border-color: var(--orange);
+}
+
+.time-btn:hover {
+  background: #fff5eb;
+}
+
+/* LOCAL */
+.select-wrapper {
+  padding: 6px 20px 0;
+}
+
+.select-wrapper select {
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 11px;
+  outline: none;
+  font-family: inherit;
+  background: var(--white);
+}
+
+/* INFO SELECIONADA */
+.selected-info {
+  background: #f0f8ff;
+  margin: 8px 20px;
+  padding: 8px;
+  border-radius: 8px;
+  border-left: 3px solid var(--orange);
+  font-size: 11px;
+}
+
+.selected-info div {
+  margin: 2px 0;
+}
+
+.selected-info strong {
+  color: var(--orange);
+}
+
+/* MENSAGEM SEM ONGS */
+.no-ongs {
+  text-align: center;
+  padding: 25px 20px;
+  color: #666;
+  font-size: 12px;
+}
+
+/* MENU INFERIOR */
+.bottom {
+  height: 74px;
+  border-top: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  background: #fff;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+}
+
+.menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  font-size: 11px;
+  color: #aaa;
+  text-align: center;
+  transition: color 0.3s;
+  position: relative;
+}
+
+.menu-item:hover {
+  color: var(--orange);
+}
+
+.plus-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--orange);
+  border: none;
+  color: #fff;
+  font-size: 28px;
+  margin-top: -30px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.plus-btn:hover {
+  background: #e67329;
+  transform: scale(1.05);
+}
+
+/* MENSAGEM DE ERRO */
+.error-message {
+  background: #ffe6e6;
+  color: #d63031;
+  text-align: center;
+  padding: 8px;
+  margin: 8px 20px;
+  border-radius: 8px;
+  border-left: 3px solid #d63031;
+  font-size: 11px;
+}
+
+/* SCROLL NO MOBILE */
+@media (max-height: 700px) {
+  .calendar .days .day {
+    padding: 3px 0;
     font-size: 10px;
-    color: #999;
-    margin-top: 3px;
-    font-family: monospace;
-  }
-  
-  /* INFO ONG SELECIONADA */
-  .ong-info {
-    background: #f0f8ff;
-    margin: 10px 20px;
-    padding: 12px;
-    border-radius: 12px;
-    border-left: 4px solid var(--orange);
-    font-size: 13px;
-  }
-  
-  .ong-info div {
-    margin: 4px 0;
-  }
-  
-  .ong-info strong {
-    color: var(--orange);
-  }
-  
-  /* BOTÕES DE AÇÃO */
-  .action-buttons-vertical {
-    padding: 10px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    max-width: 300px;
-    margin: 0 auto;
-  }
-  
-  /* TIPO DOAÇÃO */
-  .tipo-doacao {
-    padding: 10px 20px;
-    display: flex;
-    gap: 10px;
-  }
-  
-  .tipo-btn {
-    flex: 1;
-    padding: 12px;
-    border-radius: 12px;
-    border: 2px solid #ddd;
-    background: var(--white);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    text-align: center;
-    transition: all 0.3s;
-  }
-  
-  .tipo-btn.selected {
-    border-color: var(--orange);
-    background: #fff8f0;
-    color: var(--orange);
-  }
-  
-  /* DESCRIÇÃO ITEM */
-  .descricao-item {
-    padding: 0 20px 10px;
-    display: none;
-  }
-  
-  .descricao-item textarea {
-    width: 100%;
-    padding: 12px;
-    border-radius: 12px;
-    border: 1px solid #ddd;
-    font-size: 13px;
-    resize: vertical;
-    min-height: 80px;
-    outline: none;
-    font-family: inherit;
-  }
-  
-  /* VALOR DOAÇÃO */
-  .valor-doacao {
-    padding: 0 20px 10px;
-    display: none;
-  }
-  
-  .valor-doacao input {
-    width: 100%;
-    padding: 12px;
-    border-radius: 12px;
-    border: 1px solid #ddd;
-    font-size: 13px;
-    outline: none;
-    font-family: inherit;
-  }
-  
-  /* CALENDÁRIO */
-  .calendar {
-    padding: 0 20px 10px;
-  }
-  
-  .month {
-    text-align: center;
-    color: var(--orange);
-    font-weight: 600;
-    margin-bottom: 10px;
-    font-size: 14px;
-  }
-  
-  .weekdays {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    text-align: center;
-    font-size: 11px;
-    color: #bbb;
-    margin-bottom: 6px;
-  }
-  
-  .days {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    text-align: center;
-    gap: 4px;
-    font-size: 12px;
-  }
-  
-  .day {
-    padding: 8px 0;
-    border-radius: 999px;
-    color: #666;
-    cursor: pointer;
-    transition: all 0.3s;
-  }
-  
-  .day.selected {
-    background: var(--orange);
-    color: var(--white);
-    font-weight: 600;
-  }
-  
-  .day.highlight {
-    background: #ffe1c4;
-    color: #d96c16;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  
-  .day:hover {
-    background: #f5f5f5;
-  }
-  
-  /* HORÁRIOS */
-  .section {
-    padding: 8px 20px 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: #333;
   }
   
   .times {
-    padding: 6px 20px 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    gap: 4px;
   }
   
   .time-btn {
-    padding: 8px 14px;
-    border-radius: 999px;
-    border: 1px solid #ffcf9e;
-    font-size: 13px;
-    background: var(--white);
-    color: #f08a24;
-    cursor: pointer;
-    transition: all 0.3s;
-    flex: 1;
-    min-width: 70px;
-    text-align: center;
+    padding: 4px 8px;
+    font-size: 10px;
+    min-width: 48px;
   }
   
-  .time-btn.selected {
-    background: var(--orange);
-    color: var(--white);
-    border-color: var(--orange);
+  .ongs-list {
+    max-height: 200px;
   }
   
-  .time-btn:hover {
-    background: #fff5eb;
+  .bottom {
+    height: 64px;
+    gap: 30px;
   }
   
-  /* LOCAL */
-  .select-wrapper {
-    padding: 8px 20px 0;
+  .plus-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+    margin-top: -25px;
   }
   
-  .select-wrapper select {
-    width: 100%;
-    padding: 12px;
-    border-radius: 12px;
-    border: 1px solid #ddd;
-    font-size: 13px;
-    outline: none;
-    font-family: inherit;
-    background: var(--white);
-  }
-  
-  /* BOTÕES AÇÃO NO FINAL DO FORMULÁRIO */
   .form-buttons-container {
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    max-width: 300px;
-    margin: 0 auto;
+    padding: 12px 20px;
   }
   
-  /* INFO SELECIONADA */
-  .selected-info {
-    background: #f0f8ff;
-    margin: 10px 20px;
-    padding: 12px;
-    border-radius: 12px;
-    border-left: 4px solid var(--orange);
-    font-size: 13px;
+  .form-buttons-container .btn-primary,
+  .form-buttons-container .btn-secondary {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 10px;
   }
   
-  .selected-info div {
-    margin: 4px 0;
+  .phone {
+    border-radius: 24px;
   }
   
-  .selected-info strong {
-    color: var(--orange);
+  .bottom {
+    gap: 30px;
   }
   
-  /* MENSAGEM SEM ONGS */
-  .no-ongs {
-    text-align: center;
-    padding: 40px 20px;
-    color: #666;
+  .plus-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+    margin-top: -25px;
   }
   
-  /* SCROLL NO MOBILE */
-  @media (max-height: 700px) {
-    .calendar .days .day {
-      padding: 6px 0;
-    }
-    
-    .times {
-      gap: 6px;
-    }
-    
-    .time-btn {
-      padding: 6px 10px;
-      font-size: 12px;
-    }
-    
-    .ongs-list {
-      max-height: 250px;
-    }
-    /* Botão desabilitado */
-.btn-primary:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-    opacity: 0.7;
+  .time-btn {
+    min-width: 48px;
   }
   
-  /* Botão habilitado */
-  .btn-primary:enabled {
-    background: var(--orange);
-    cursor: pointer;
-    opacity: 1;
+  .form-buttons-container {
+    gap: 8px;
   }
+}
+
+/* Para telas muito pequenas */
+@media (max-width: 380px) {
+  .form-buttons-container .btn-primary,
+  .form-buttons-container .btn-secondary {
+    padding: 6px 8px;
+    font-size: 10px;
   }
+}

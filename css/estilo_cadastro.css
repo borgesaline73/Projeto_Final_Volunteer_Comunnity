@@ -1,5 +1,11 @@
 /* ===== ESTILO ESPECÍFICO DO CADASTRO ===== */
 
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   background: var(--bg, #f6f4f2);
@@ -32,114 +38,6 @@ body {
   padding-bottom: 20px;
 }
 
-.screen {
-  padding: 20px;
-}
-
-.topbar {
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-}
-
-.back {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #a9c3bb;
-  color: var(--white);
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  transition: background 0.3s;
-}
-
-.back:hover {
-  background: #8fafa5;
-}
-
-h1 {
-  font-size: 36px;
-  font-weight: 800;
-  margin-bottom: 20px;
-  color: #4b3f34;
-}
-
-form {
-  display: grid;
-  gap: 12px;
-}
-
-.field input {
-  width: 100%;
-  padding: 16px 14px;
-  border: 1.5px solid #e4e4e4;
-  border-radius: 14px;
-  font-size: 15px;
-  font-family: "Poppins", sans-serif;
-  transition: border-color 0.3s;
-  box-sizing: border-box;
-}
-
-.field input:focus {
-  outline: none;
-  border-color: var(--orange);
-}
-
-.grid-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.role-title {
-  text-align: center;
-  font-weight: 600;
-  margin-top: 10px;
-  color: #666;
-}
-
-.role-options {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 10px;
-}
-
-.role input {
-  display: none;
-}
-
-.pill {
-  background: #f5f5f5;
-  color: #666;
-  text-align: center;
-  padding: 14px;
-  border-radius: 999px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s;
-  border: 2px solid #e4e4e4;
-}
-
-#role-doador:checked + label,
-#role-inst:checked + label {
-  background: var(--orange);
-  color: var(--white);
-  border-color: var(--orange);
-}
-
-#role-indicator {
-  text-align: center;
-  margin-top: 12px;
-  font-weight: 600;
-  color: var(--orange);
-  min-height: 24px;
-}
-
 /* Scroll personalizado */
 .main-content::-webkit-scrollbar {
   width: 6px;
@@ -159,6 +57,181 @@ form {
   background: #a8a8a8;
 }
 
+.screen {
+  padding: 16px 20px;
+}
+
+.topbar {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.back {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #a9c3bb;
+  color: var(--white);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: background 0.3s;
+}
+
+.back:hover {
+  background: #8fafa5;
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 16px;
+  color: #4b3f34;
+}
+
+form {
+  display: grid;
+  gap: 10px;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid #e4e4e4;
+  border-radius: 12px;
+  font-size: 14px;
+  font-family: "Poppins", sans-serif;
+  transition: border-color 0.3s;
+  box-sizing: border-box;
+  background: #fff;
+}
+
+.field input:focus,
+.field select:focus {
+  outline: none;
+  border-color: var(--orange);
+}
+
+.field select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.role-title {
+  text-align: center;
+  font-weight: 600;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #666;
+}
+
+.role-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+/* Esconde os radio buttons originais */
+.role-options input[type="radio"] {
+  display: none;
+}
+
+.pill {
+  background: #f5f5f5;
+  color: #666;
+  text-align: center;
+  padding: 10px 14px;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 1.5px solid #e4e4e4;
+  display: block;
+}
+
+#role-doador:checked + .pill,
+#role-inst:checked + .pill {
+  background: var(--orange);
+  color: var(--white);
+  border-color: var(--orange);
+}
+
+/* Ajuste para o seletor correto */
+.role-options label.pill {
+  display: block;
+}
+
+#role-indicator {
+  text-align: center;
+  margin-top: 10px;
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--orange);
+  min-height: 20px;
+}
+
+.btn-primary {
+  background: var(--orange);
+  color: var(--white);
+  border: none;
+  padding: 12px 16px;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.3s;
+  width: 100%;
+  font-family: "Poppins", sans-serif;
+  margin-top: 8px;
+}
+
+.btn-primary:hover {
+  background: var(--orange-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Campo de senha com dica */
+.field small {
+  font-size: 10px;
+  color: #888;
+  display: block;
+  margin-top: 4px;
+}
+
+/* Mensagem de erro inline */
+.error-message {
+  background: #fdecea;
+  color: #b91c1c;
+  padding: 10px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  text-align: center;
+  font-size: 12px;
+  border-left: 3px solid #b91c1c;
+}
+
+/* Responsividade */
 @media (max-height: 700px) {
   body {
     align-items: flex-start;
@@ -166,20 +239,40 @@ form {
   }
   
   h1 {
-    font-size: 28px;
-    margin-bottom: 15px;
+    font-size: 24px;
+    margin-bottom: 12px;
   }
   
-  .field input {
-    padding: 12px 14px;
+  .screen {
+    padding: 12px 16px;
+  }
+  
+  .field input,
+  .field select {
+    padding: 10px 12px;
+    font-size: 13px;
   }
   
   .pill {
-    padding: 12px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  
+  .btn-primary {
+    padding: 10px 14px;
+    font-size: 13px;
   }
   
   .phone {
     height: 85vh;
+  }
+  
+  form {
+    gap: 8px;
+  }
+  
+  .grid-2 {
+    gap: 8px;
   }
 }
 
@@ -190,19 +283,76 @@ form {
   
   .phone {
     border-radius: 20px;
-    padding: 12px;
   }
   
   .screen {
-    padding: 15px;
+    padding: 14px 16px;
   }
   
   h1 {
-    font-size: 28px;
+    font-size: 24px;
+    margin-bottom: 14px;
+  }
+  
+  .field input,
+  .field select {
+    padding: 10px 12px;
+    font-size: 13px;
+    border-radius: 10px;
   }
   
   .grid-2 {
-    grid-template-columns: 1fr;
     gap: 8px;
+  }
+  
+  .pill {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  
+  .btn-primary {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+  
+  .back {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+}
+
+/* Para telas muito pequenas */
+@media (max-width: 380px) {
+  .screen {
+    padding: 12px 14px;
+  }
+  
+  h1 {
+    font-size: 22px;
+  }
+  
+  .field input,
+  .field select {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  
+  .pill {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+  
+  .btn-primary {
+    padding: 9px 12px;
+    font-size: 12px;
+  }
+  
+  .role-title {
+    font-size: 12px;
+  }
+  
+  #role-indicator {
+    font-size: 11px;
   }
 }

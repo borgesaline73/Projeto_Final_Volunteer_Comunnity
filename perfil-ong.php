@@ -2,6 +2,14 @@
 session_start();
 require "banco.php";
 
+// ===== CAPTURAR MENSAGEM DE SUCESSO DA URL =====
+$mensagem_flash = '';
+$tipo_flash = '';
+if (isset($_GET['msg']) && isset($_GET['tipo'])) {
+    $mensagem_flash = urldecode($_GET['msg']);
+    $tipo_flash = $_GET['tipo'];
+}
+
 if (!isset($_SESSION["usuario_id"])) {
     header("Location: login.php");
     exit;
@@ -101,10 +109,51 @@ $rotaPerfil = "perfil-ong.php";
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/estilo_global.css">
 <link rel="stylesheet" href="css/estilo_perfil_ong.css">
+<!-- SweetAlert2 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+<style>
+  /*
+   * Confina o overlay e o popup do SweetAlert2 dentro do .phone.
+   * O .phone precisa ter position: relative (ou absolute/fixed) para
+   * que o overlay com position: absolute fique preso nele.
+   */
+  .phone {
+    position: relative; /* garante o contexto de posicionamento */
+    overflow: hidden;   /* corta qualquer coisa que vaze */
+  }
+
+  /* Overlay fica sobre o .phone, não sobre a página inteira */
+  .swal2-container.swal-inside-phone {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 9999;
+  }
+
+  /* Popup centralizado dentro do container acima */
+  .swal2-container.swal-inside-phone .swal2-popup {
+    width: 88% !important;
+    max-width: 340px !important;
+    border-radius: 16px !important;
+    font-family: 'Poppins', sans-serif !important;
+  }
+
+  /* Toast também fica dentro do .phone */
+  .swal2-container.swal-inside-phone.swal2-top-end,
+  .swal2-container.swal-inside-phone.swal2-top-right {
+    top: 8px !important;
+    right: 8px !important;
+    width: auto !important;
+    height: auto !important;
+  }
+</style>
 </head>
 <body>
 
-<div class="phone">
+<div class="phone" id="phoneWrapper">
 
   <!-- HEADER -->
   <div class="header">
@@ -306,7 +355,7 @@ $rotaPerfil = "perfil-ong.php";
 
   </div><!-- fim .main-content -->
 
-  <!-- MODAL ADICIONAR ITEM (fora do main-content, dentro do .phone) -->
+  <!-- MODAL ADICIONAR ITEM -->
   <div class="modal-overlay" id="modalItem" style="display:none;">
     <div class="modal-box">
       <h3 id="modal-titulo">Adicionar Item</h3>
@@ -342,25 +391,65 @@ $rotaPerfil = "perfil-ong.php";
 
 </div><!-- fim .phone -->
 
+<!-- SweetAlert2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
+// ─── Referência ao elemento .phone para confinar os modais ───────────────────
+const phoneEl = document.getElementById('phoneWrapper');
+
+// Tema padrão da ONG para o SweetAlert2
+// target: phoneEl → o overlay e o popup ficam dentro do .phone
+const swalONG = Swal.mixin({
+  target: phoneEl,
+  confirmButtonColor: '#f4822f',
+  cancelButtonColor: '#aaa',
+  customClass: {
+    container: 'swal-inside-phone',   // classe para o CSS de confinamento
+    popup:     'swal-popup-ong'
+  }
+});
+
+// ===== VERIFICAR MENSAGEM DE SUCESSO NA URL =====
+(function verificarMensagemSucesso() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const msg = urlParams.get('msg');
+    const tipo = urlParams.get('tipo');
+    
+    if (msg && tipo) {
+        // Aguarda o DOM carregar
+        setTimeout(() => {
+            swalONG.fire({
+                title: tipo === 'success' ? 'Sucesso!' : 'Atenção',
+                text: decodeURIComponent(msg),
+                icon: tipo,
+                timer: 3000,
+                timerProgressBar: true,
+                showConfirmButton: true,
+                confirmButtonText: 'Ok'
+            });
+        }, 500);
+        
+        // Remove os parâmetros da URL sem recarregar a página
+        const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+    }
+})();
+
 // ===== SISTEMA DE ABAS =====
 document.addEventListener('DOMContentLoaded', function () {
   const tabs = document.querySelectorAll('.tab');
-  // Garante que o scroll do menu começa no início (aba 1 visível)
-    const tabMenu = document.querySelector('.tab-menu');
-    if (tabMenu) tabMenu.scrollLeft = 0;
+  const tabMenu = document.querySelector('.tab-menu');
+  if (tabMenu) tabMenu.scrollLeft = 0;
 
   tabs.forEach(tab => {
     tab.addEventListener('click', function () {
-      // remove active de todas as abas e conteúdos
       tabs.forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
 
-      // ativa a aba clicada
       this.classList.add('active');
       this.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
 
-      // ativa o conteúdo correspondente
       const tabId = this.getAttribute('data-tab');
       const target = document.getElementById(tabId + '-tab');
       if (target) target.classList.add('active');
@@ -388,9 +477,34 @@ document.addEventListener('DOMContentLoaded', atualizarNotificacoes);
 document.body.style.overflow = 'hidden';
 
 // ===== COLETAS =====
-function confirmarRecebimento(idDoacao) {
-  if (confirm('Deseja confirmar o recebimento desta doação?\n\nEsta ação notificará o doador e mudará o status para "RECEBIDA".')) {
+async function confirmarRecebimento(idDoacao) {
+  const result = await swalONG.fire({
+    title: 'Confirmar recebimento?',
+    text: 'O doador será notificado e o status mudará para "RECEBIDA".',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: '✅ Confirmar',
+    cancelButtonText: 'Cancelar',
+  });
+
+  if (result.isConfirmed) {
     window.location.href = 'confirmar_recebimento.php?id=' + idDoacao;
+  }
+}
+
+// ===== EXCLUIR POST =====
+async function excluirPost(idPost) {
+  const result = await swalONG.fire({
+    title: 'Excluir post?',
+    text: 'Esta ação não pode ser desfeita.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: '🗑️ Excluir',
+    cancelButtonText: 'Cancelar',
+  });
+
+  if (result.isConfirmed) {
+    window.location.href = 'excluir_post.php?id=' + idPost;
   }
 }
 
@@ -417,7 +531,10 @@ async function salvarItem() {
   const tipo = document.getElementById('modal-tipo').value;
   const btn  = document.getElementById('btn-salvar-item');
 
-  if (!nome) { document.getElementById('modal-input').focus(); return; }
+  if (!nome) {
+    document.getElementById('modal-input').focus();
+    return;
+  }
 
   btn.disabled = true;
   btn.textContent = 'Salvando...';
@@ -442,11 +559,30 @@ async function salvarItem() {
       tag.innerHTML = `${nome} <span class="remove-item" onclick="removerItem(${data.id_item},'${tipo}')">✕</span>`;
       lista.appendChild(tag);
       fecharModal();
+
+      await swalONG.fire({
+        title: 'Item adicionado!',
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end',
+      });
     } else {
-      alert(data.erro || 'Erro ao salvar.');
+      await swalONG.fire({
+        title: 'Erro ao salvar',
+        text: data.erro || 'Tente novamente.',
+        icon: 'error',
+        confirmButtonText: 'Ok',
+      });
     }
   } catch (e) {
-    alert('Erro de conexão.');
+    await swalONG.fire({
+      title: 'Erro de conexão',
+      text: 'Verifique sua conexão e tente novamente.',
+      icon: 'error',
+      confirmButtonText: 'Ok',
+    });
   }
 
   btn.disabled = false;
@@ -454,7 +590,16 @@ async function salvarItem() {
 }
 
 async function removerItem(idItem, tipo) {
-  if (!confirm('Remover este item?')) return;
+  const result = await swalONG.fire({
+    title: 'Remover item?',
+    text: 'Esta ação não pode ser desfeita.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Remover',
+    cancelButtonText: 'Cancelar',
+  });
+
+  if (!result.isConfirmed) return;
 
   const form = new FormData();
   form.append('acao', 'remover');
@@ -476,11 +621,30 @@ async function removerItem(idItem, tipo) {
         p.textContent = 'Nenhum item cadastrado ainda.';
         lista.appendChild(p);
       }
+
+      await swalONG.fire({
+        title: 'Item removido!',
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end',
+      });
     } else {
-      alert(data.erro || 'Erro ao remover.');
+      await swalONG.fire({
+        title: 'Erro ao remover',
+        text: data.erro || 'Tente novamente.',
+        icon: 'error',
+        confirmButtonText: 'Ok',
+      });
     }
   } catch (e) {
-    alert('Erro de conexão.');
+    await swalONG.fire({
+      title: 'Erro de conexão',
+      text: 'Verifique sua conexão e tente novamente.',
+      icon: 'error',
+      confirmButtonText: 'Ok',
+    });
   }
 }
 
@@ -530,11 +694,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (next) next.disabled = slides.length <= 1;
   }
 });
-function excluirPost(idPost) {
-  if (confirm('Deseja excluir este post?\n\nEsta ação não pode ser desfeita.')) {
-    window.location.href = 'excluir_post.php?id=' + idPost;
-  }
-}
 </script>
 
 </body>

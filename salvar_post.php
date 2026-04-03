@@ -18,8 +18,11 @@ $categoria  = trim($_POST["categoria"] ?? "");
 $descricao  = trim($_POST["descricao"] ?? "");
 $id_post    = (int)($_POST["id_post"]  ?? 0);
 
+// ─── Validação dos campos obrigatórios ──────────────────────────────────────
 if (empty($titulo) || empty($categoria) || empty($descricao)) {
-    die("Preencha todos os campos obrigatorios.");
+    $error_msg = urlencode("Preencha todos os campos obrigatórios.");
+    header("Location: criar_post.php" . ($id_post > 0 ? "?id=$id_post&error=1&msg=$error_msg" : "?error=1&msg=$error_msg"));
+    exit;
 }
 
 $pasta = "uploads/";
@@ -27,6 +30,7 @@ if (!is_dir($pasta)) {
     mkdir($pasta, 0755, true);
 }
 
+// ─── EDIÇÃO de post existente ───────────────────────────────────────────────
 if ($id_post > 0) {
 
     $stmt = $pdo->prepare("SELECT * FROM posts WHERE id_post = ? AND id_usuario = ?");
@@ -63,10 +67,12 @@ if ($id_post > 0) {
     $stmt = $pdo->prepare("UPDATE posts SET titulo = ?, categoria = ?, descricao = ?, imagem = ? WHERE id_post = ? AND id_usuario = ?");
     $stmt->execute([$titulo, $categoria, $descricao, $imagemNome, $id_post, $id_usuario]);
 
-    echo "<script>alert('Publicacao atualizada com sucesso!'); window.location='perfil-ong.php';</script>";
+    $success_msg = urlencode("Publicação atualizada com sucesso!");
+    header("Location: perfil-ong.php?msg=$success_msg&tipo=success");
     exit;
 }
 
+// ─── CRIAÇÃO de novo post ────────────────────────────────────────────────────
 $imagemNome = null;
 
 if (!empty($_FILES["imagem"]["name"])) {
@@ -82,5 +88,7 @@ if (!empty($_FILES["imagem"]["name"])) {
 $stmt = $pdo->prepare("INSERT INTO posts (id_usuario, titulo, categoria, descricao, imagem) VALUES (:id, :titulo, :categoria, :descricao, :imagem)");
 $stmt->execute([":id" => $id_usuario, ":titulo" => $titulo, ":categoria" => $categoria, ":descricao" => $descricao, ":imagem" => $imagemNome]);
 
-echo "<script>alert('Publicacao criada com sucesso!'); window.location='feed.php';</script>";
+$success_msg = urlencode("Publicação criada com sucesso!");
+header("Location: feed.php?msg=$success_msg&tipo=success");
+exit;
 ?>

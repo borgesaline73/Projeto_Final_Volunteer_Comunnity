@@ -18,7 +18,7 @@ $id_doador = $_SESSION["usuario_id"];
 
 // Parâmetros vindos da URL
 $id_ong    = $_GET['ong']   ?? null;
-$titulo_ong = $_GET['titulo'] ?? ''; // vazio quando vem do perfil público
+$titulo_ong = $_GET['titulo'] ?? '';
 
 // Mensagem de sucesso
 $mensagem_sucesso = '';
@@ -58,7 +58,7 @@ try {
     }
 }
 
-// Buscar dados da ONG selecionada (via GET ou POST)
+// Buscar dados da ONG selecionada
 $ong_selecionada = null;
 
 function buscarOng($pdo, $id) {
@@ -139,8 +139,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $pdo->commit();
 
-                $_SESSION['agendamento_sucesso'] = "✅ Agendamento realizado com sucesso! A ONG foi notificada.";
-                header("Location: agendar_coleta.php?sucesso=1&ong=" . urlencode($ong_escolhida));
+                // Redireciona para o feed com mensagem de sucesso
+                $success_msg = urlencode("✅ Agendamento realizado com sucesso! A ONG foi notificada.");
+                header("Location: feed.php?msg=$success_msg&tipo=success");
                 exit;
 
             } catch (PDOException $e) {
@@ -152,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Buscar ONG via GET (vindo do feed ou perfil público) — só se não veio de POST
+// Buscar ONG via GET
 if ($id_ong && $_SERVER['REQUEST_METHOD'] !== 'POST' && !$ong_selecionada) {
     try {
         $ong_selecionada = buscarOng($pdo, $id_ong);
@@ -161,7 +162,6 @@ if ($id_ong && $_SERVER['REQUEST_METHOD'] !== 'POST' && !$ong_selecionada) {
     }
 }
 
-// Se veio de POST de escolher_ong e ainda não buscou
 if (!$ong_selecionada && !empty($ong_escolhida)) {
     try {
         $ong_selecionada = buscarOng($pdo, $ong_escolhida);
@@ -171,31 +171,70 @@ if (!$ong_selecionada && !empty($ong_escolhida)) {
 }
 
 $mostrar_formulario = !empty($ong_escolhida);
+
+// Gerar meses para o calendário
+$meses = [
+    1 => 'Janeiro', 2 => 'Fevereiro', 3 => 'Março', 4 => 'Abril',
+    5 => 'Maio', 6 => 'Junho', 7 => 'Julho', 8 => 'Agosto',
+    9 => 'Setembro', 10 => 'Outubro', 11 => 'Novembro', 12 => 'Dezembro'
+];
+
+$ano_atual = date('Y');
+$mes_atual = (int)date('m');
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Agendar Coleta - Volunteer Community</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/estilo_global.css">
 <link rel="stylesheet" href="css/estilo_agendar_coleta.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
 <style>
-.error-message {
-  background: #ffe6e6;
-  color: #d63031;
-  text-align: center;
-  padding: 10px;
-  margin: 10px 20px;
-  border-radius: 12px;
-  border-left: 4px solid #d63031;
-}
+    /* Estilo para confinar o SweetAlert dentro do telefone */
+    .phone {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .swal2-container.swal-inside-agendar {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        z-index: 9999;
+    }
+
+    .swal2-container.swal-inside-agendar .swal2-popup {
+        width: 88% !important;
+        max-width: 320px !important;
+        border-radius: 20px !important;
+        font-family: 'Poppins', sans-serif !important;
+    }
+
+    .swal2-confirm {
+        background-color: #f4822f !important;
+        border-radius: 50px !important;
+        padding: 8px 20px !important;
+        font-weight: 600 !important;
+        font-size: 13px !important;
+    }
+
+    .swal2-cancel {
+        border-radius: 50px !important;
+        padding: 8px 20px !important;
+        font-weight: 600 !important;
+        font-size: 13px !important;
+    }
 </style>
 </head>
 <body>
 
-<div class="phone">
+<div class="phone" id="phoneWrapper">
 
   <!-- HEADER -->
   <div class="header">
@@ -308,7 +347,7 @@ $mostrar_formulario = !empty($ong_escolhida);
     </div>
     <?php endif; ?>
 
-    <form method="POST" action="">
+    <form method="POST" action="" id="formAgendamento">
       <input type="hidden" name="ong_escolhida" value="<?= $ong_escolhida ?>">
 
       <div class="section">Tipo de Doação</div>
@@ -320,12 +359,12 @@ $mostrar_formulario = !empty($ong_escolhida);
 
       <div class="descricao-item" id="descricaoItemContainer">
         <div class="section">Descrição dos Itens</div>
-        <textarea name="descricao_item" placeholder="Descreva os itens que serão doados..."><?= htmlspecialchars($descricao_item) ?></textarea>
+        <textarea name="descricao_item" id="descricao_item" placeholder="Descreva os itens que serão doados..."><?= htmlspecialchars($descricao_item) ?></textarea>
       </div>
 
       <div class="valor-doacao" id="valorDoacaoContainer">
         <div class="section">Valor da Doação (R$)</div>
-        <input type="number" name="valor_doacao" placeholder="0,00" step="0.01" min="0" value="<?= htmlspecialchars($valor_doacao) ?>">
+        <input type="number" name="valor_doacao" id="valor_doacao" placeholder="0,00" step="0.01" min="0" value="<?= htmlspecialchars($valor_doacao) ?>">
       </div>
 
       <?php if ($data_selecionada): ?>
@@ -346,45 +385,26 @@ $mostrar_formulario = !empty($ong_escolhida);
       </div>
       <?php endif; ?>
 
-      <div class="calendar">
-        <div class="month">Abril 2025</div>
+      <!-- CALENDÁRIO DINÂMICO -->
+      <div class="calendar" id="calendar">
+        <div class="month-selector">
+          <button type="button" onclick="changeMonth(-1)">◀</button>
+          <select id="monthSelect" onchange="updateCalendar()">
+            <?php foreach ($meses as $num => $nome): ?>
+              <option value="<?= $num ?>" <?= $num == $mes_atual ? 'selected' : '' ?>><?= $nome ?></option>
+            <?php endforeach; ?>
+          </select>
+          <div class="year-display">
+            <span id="yearDisplay"><?= $ano_atual ?></span>
+            <button type="button" onclick="changeYear(1)" style="margin-left: 5px;">▲</button>
+            <button type="button" onclick="changeYear(-1)">▼</button>
+          </div>
+          <button type="button" onclick="changeMonth(1)">▶</button>
+        </div>
         <div class="weekdays">
           <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
         </div>
-        <div class="days">
-          <span></span><span></span>
-          <span class="day" onclick="selectDate('2025-04-01')">1</span>
-          <span class="day" onclick="selectDate('2025-04-02')">2</span>
-          <span class="day" onclick="selectDate('2025-04-03')">3</span>
-          <span class="day" onclick="selectDate('2025-04-04')">4</span>
-          <span class="day" onclick="selectDate('2025-04-05')">5</span>
-          <span class="day" onclick="selectDate('2025-04-06')">6</span>
-          <span class="day" onclick="selectDate('2025-04-07')">7</span>
-          <span class="day" onclick="selectDate('2025-04-08')">8</span>
-          <span class="day" onclick="selectDate('2025-04-09')">9</span>
-          <span class="day" onclick="selectDate('2025-04-10')">10</span>
-          <span class="day" onclick="selectDate('2025-04-11')">11</span>
-          <span class="day" onclick="selectDate('2025-04-12')">12</span>
-          <span class="day" onclick="selectDate('2025-04-13')">13</span>
-          <span class="day" onclick="selectDate('2025-04-14')">14</span>
-          <span class="day" onclick="selectDate('2025-04-15')">15</span>
-          <span class="day" onclick="selectDate('2025-04-16')">16</span>
-          <span class="day" onclick="selectDate('2025-04-17')">17</span>
-          <span class="day" onclick="selectDate('2025-04-18')">18</span>
-          <span class="day" onclick="selectDate('2025-04-19')">19</span>
-          <span class="day" onclick="selectDate('2025-04-20')">20</span>
-          <span class="day" onclick="selectDate('2025-04-21')">21</span>
-          <span class="day" onclick="selectDate('2025-04-22')">22</span>
-          <span class="day" onclick="selectDate('2025-04-23')">23</span>
-          <span class="day" onclick="selectDate('2025-04-24')">24</span>
-          <span class="day" onclick="selectDate('2025-04-25')">25</span>
-          <span class="day" onclick="selectDate('2025-04-26')">26</span>
-          <span class="day" onclick="selectDate('2025-04-27')">27</span>
-          <span class="day" onclick="selectDate('2025-04-28')">28</span>
-          <span class="day" onclick="selectDate('2025-04-29')">29</span>
-          <span class="day" onclick="selectDate('2025-04-30')">30</span>
-          <span></span><span></span><span></span>
-        </div>
+        <div class="days" id="daysContainer"></div>
       </div>
 
       <input type="hidden" name="data_coleta" id="data_coleta" value="<?= htmlspecialchars($data_selecionada) ?>">
@@ -405,7 +425,7 @@ $mostrar_formulario = !empty($ong_escolhida);
 
       <div class="section">Local de coleta</div>
       <div class="select-wrapper">
-        <select name="local_coleta" required>
+        <select name="local_coleta" id="localColeta" required>
           <option value="">Selecione um local</option>
           <option value="Fort Atacadista" <?= $local_selecionado == 'Fort Atacadista' ? 'selected' : '' ?>>Fort Atacadista</option>
           <option value="ONG Reviver - Centro" <?= $local_selecionado == 'ONG Reviver - Centro' ? 'selected' : '' ?>>ONG Reviver - Centro</option>
@@ -420,7 +440,7 @@ $mostrar_formulario = !empty($ong_escolhida);
       </div>
 
       <div class="form-buttons-container">
-        <button type="submit" name="agendar" class="btn-primary" id="btnAgendar" disabled>✅ Agendar</button>
+        <button type="button" class="btn-primary" id="btnAgendar" disabled onclick="confirmarAgendamento()">✅ Agendar</button>
         <button type="button" class="btn-secondary" onclick="window.location.href='agendar_coleta.php'">🔄 Trocar ONG</button>
       </div>
     </form>
@@ -439,11 +459,103 @@ $mostrar_formulario = !empty($ong_escolhida);
 
 </div>
 
+<!-- SweetAlert2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
-let selectedDate = '';
-let selectedTime = '';
+// ─── Referência ao elemento .phone para confinar os modais ───────────────────
+const phoneEl = document.getElementById('phoneWrapper');
+
+const swalAgendar = Swal.mixin({
+    target: phoneEl,
+    confirmButtonColor: '#f4822f',
+    cancelButtonColor: '#aaa',
+    customClass: {
+        container: 'swal-inside-agendar',
+        popup: 'swal-popup-agendar'
+    }
+});
+
+// ===== VARIÁVEIS DO CALENDÁRIO =====
+let currentYear = <?= $ano_atual ?>;
+let currentMonth = <?= $mes_atual ?> - 1;
+let selectedDate = '<?= $data_selecionada ?>';
+let selectedTime = '<?= $horario_selecionado ?>';
 let selectedTipo = '<?= $tipo_doacao ?>';
 
+// ===== FUNÇÃO PARA GERAR O CALENDÁRIO =====
+function updateCalendar() {
+    const monthSelect = document.getElementById('monthSelect');
+    currentMonth = parseInt(monthSelect.value) - 1;
+    const yearDisplay = document.getElementById('yearDisplay');
+    yearDisplay.textContent = currentYear;
+    
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+    const startDayOfWeek = firstDay.getDay();
+    const daysInMonth = lastDay.getDate();
+    
+    const daysContainer = document.getElementById('daysContainer');
+    daysContainer.innerHTML = '';
+    
+    for (let i = 0; i < startDayOfWeek; i++) {
+        const emptyDay = document.createElement('span');
+        emptyDay.className = 'day empty';
+        emptyDay.innerHTML = '';
+        daysContainer.appendChild(emptyDay);
+    }
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dayElement = document.createElement('span');
+        dayElement.className = 'day';
+        dayElement.textContent = day;
+        
+        const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        dayElement.onclick = () => selectDate(dateStr);
+        
+        const currentDate = new Date(currentYear, currentMonth, day);
+        if (currentDate.toDateString() === today.toDateString()) {
+            dayElement.classList.add('highlight');
+        }
+        
+        if (selectedDate === dateStr) {
+            dayElement.classList.add('selected');
+        }
+        
+        daysContainer.appendChild(dayElement);
+    }
+}
+
+function changeMonth(delta) {
+    let newMonth = currentMonth + delta;
+    let newYear = currentYear;
+    
+    if (newMonth < 0) {
+        newMonth = 11;
+        newYear--;
+    } else if (newMonth > 11) {
+        newMonth = 0;
+        newYear++;
+    }
+    
+    currentYear = newYear;
+    currentMonth = newMonth;
+    
+    document.getElementById('monthSelect').value = currentMonth + 1;
+    document.getElementById('yearDisplay').textContent = currentYear;
+    updateCalendar();
+}
+
+function changeYear(delta) {
+    currentYear += delta;
+    document.getElementById('yearDisplay').textContent = currentYear;
+    updateCalendar();
+}
+
+// ===== FUNÇÕES DE FILTRO E SELEÇÃO =====
 function filterOngs() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
     document.querySelectorAll('.ong-card').forEach(card => {
@@ -473,8 +585,8 @@ function checkOngSelection() {
 function updateTipoDisplay() {
     const descricaoContainer = document.getElementById('descricaoItemContainer');
     const valorContainer     = document.getElementById('valorDoacaoContainer');
-    if (descricaoContainer) descricaoContainer.style.display = selectedTipo === 'ITEM'     ? 'block' : 'none';
-    if (valorContainer)     valorContainer.style.display     = selectedTipo === 'DINHEIRO' ? 'block' : 'none';
+    if (descricaoContainer) descricaoContainer.style.display = selectedTipo === 'ITEM' ? 'block' : 'none';
+    if (valorContainer) valorContainer.style.display = selectedTipo === 'DINHEIRO' ? 'block' : 'none';
     checkFormCompletion();
 }
 
@@ -489,8 +601,19 @@ function selectTipo(tipo) {
 function selectDate(date) {
     selectedDate = date;
     document.getElementById('data_coleta').value = date;
+    
     document.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
-    event.target.classList.add('selected');
+    const days = document.querySelectorAll('.day');
+    days.forEach(day => {
+        if (day.textContent && !day.classList.contains('empty')) {
+            const dayNum = parseInt(day.textContent);
+            const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+            if (dateStr === date) {
+                day.classList.add('selected');
+            }
+        }
+    });
+    
     checkFormCompletion();
 }
 
@@ -522,11 +645,133 @@ function checkFormCompletion() {
     btn.disabled = !isValid;
 }
 
+// ===== FUNÇÃO DE CONFIRMAÇÃO DE AGENDAMENTO =====
+async function confirmarAgendamento() {
+    const tipoDoacao = document.getElementById('tipo_doacao').value;
+    const descricaoItem = document.getElementById('descricao_item')?.value.trim() || '';
+    const valorDoacao = document.getElementById('valor_doacao')?.value.trim() || '';
+    const data = document.getElementById('data_coleta').value;
+    const horario = document.getElementById('horario').value;
+    const local = document.getElementById('localColeta').value;
+    const nomeOng = '<?= addslashes($ong_selecionada['nome'] ?? '') ?>';
+    
+    if (!data || !horario || !local) {
+        await swalAgendar.fire({
+            title: 'Campos incompletos',
+            text: 'Preencha todos os campos antes de agendar!',
+            icon: 'warning',
+            confirmButtonText: 'Ok'
+        });
+        return;
+    }
+    
+    let resumo = '';
+    if (tipoDoacao === 'ITEM') {
+        if (!descricaoItem) {
+            await swalAgendar.fire({
+                title: 'Descrição necessária',
+                text: 'Por favor, descreva os itens que serão doados!',
+                icon: 'warning',
+                confirmButtonText: 'Ok'
+            });
+            return;
+        }
+        resumo = `<strong>📦 Itens:</strong> ${descricaoItem.substring(0, 100)}${descricaoItem.length > 100 ? '...' : ''}<br>`;
+    } else {
+        if (!valorDoacao || parseFloat(valorDoacao) <= 0) {
+            await swalAgendar.fire({
+                title: 'Valor inválido',
+                text: 'Por favor, informe um valor válido para doação!',
+                icon: 'warning',
+                confirmButtonText: 'Ok'
+            });
+            return;
+        }
+        resumo = `<strong>💰 Valor:</strong> R$ ${parseFloat(valorDoacao).toFixed(2).replace('.', ',')}<br>`;
+    }
+    
+    const mensagem = `
+        <div style="text-align: left;">
+            ${resumo}
+            <strong>🏢 ONG:</strong> ${nomeOng}<br>
+            <strong>📅 Data:</strong> ${data}<br>
+            <strong>⏰ Horário:</strong> ${horario}<br>
+            <strong>📍 Local:</strong> ${local}<br>
+            <hr style="margin: 10px 0;">
+            <p style="color: #f4822f; font-weight: bold;">Deseja confirmar este agendamento?</p>
+        </div>
+    `;
+    
+    const result = await swalAgendar.fire({
+        title: 'Confirmar Agendamento',
+        html: mensagem,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: '✅ Sim, agendar',
+        cancelButtonText: '❌ Cancelar'
+    });
+    
+    if (result.isConfirmed) {
+        const form = document.getElementById('formAgendamento');
+        const btnAgendar = document.getElementById('btnAgendar');
+        btnAgendar.disabled = true;
+        btnAgendar.textContent = '⏳ Agendando...';
+        
+        const inputData = document.createElement('input');
+        inputData.type = 'hidden';
+        inputData.name = 'data_coleta';
+        inputData.value = data;
+        form.appendChild(inputData);
+        
+        const inputHorario = document.createElement('input');
+        inputHorario.type = 'hidden';
+        inputHorario.name = 'horario';
+        inputHorario.value = horario;
+        form.appendChild(inputHorario);
+        
+        const inputLocal = document.createElement('input');
+        inputLocal.type = 'hidden';
+        inputLocal.name = 'local_coleta';
+        inputLocal.value = local;
+        form.appendChild(inputLocal);
+        
+        const inputTipo = document.createElement('input');
+        inputTipo.type = 'hidden';
+        inputTipo.name = 'tipo_doacao';
+        inputTipo.value = tipoDoacao;
+        form.appendChild(inputTipo);
+        
+        if (tipoDoacao === 'ITEM') {
+            const inputDesc = document.createElement('input');
+            inputDesc.type = 'hidden';
+            inputDesc.name = 'descricao_item';
+            inputDesc.value = descricaoItem;
+            form.appendChild(inputDesc);
+        } else {
+            const inputValor = document.createElement('input');
+            inputValor.type = 'hidden';
+            inputValor.name = 'valor_doacao';
+            inputValor.value = valorDoacao;
+            form.appendChild(inputValor);
+        }
+        
+        const submitBtn = document.createElement('input');
+        submitBtn.type = 'submit';
+        submitBtn.name = 'agendar';
+        submitBtn.value = 'agendar';
+        submitBtn.style.display = 'none';
+        form.appendChild(submitBtn);
+        
+        submitBtn.click();
+    }
+}
+
+// ===== INICIALIZAÇÃO =====
 document.addEventListener('DOMContentLoaded', function () {
     checkOngSelection();
     updateTipoDisplay();
-
-    // Clique nos cards de ONG
+    updateCalendar();
+    
     document.querySelectorAll('.ong-card').forEach(card => {
         card.addEventListener('click', function (e) {
             e.stopPropagation();
@@ -538,8 +783,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (btn) btn.disabled = false;
         });
     });
-
-    // Verificar radio pré-marcado
+    
     document.querySelectorAll('input[name="ong_escolhida"]').forEach(radio => {
         if (radio.checked) {
             const parentCard = radio.closest('.ong-card');
@@ -550,14 +794,12 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     });
-
-    // Eventos de input
+    
     document.querySelector('select[name="local_coleta"]')?.addEventListener('change', checkFormCompletion);
     document.querySelector('textarea[name="descricao_item"]')?.addEventListener('input', checkFormCompletion);
     document.querySelector('input[name="valor_doacao"]')?.addEventListener('input', checkFormCompletion);
     document.getElementById('searchInput')?.addEventListener('input', filterOngs);
-
-    // Auto-fechar sucesso
+    
     const successMsg = document.getElementById('successMessage');
     if (successMsg) {
         setTimeout(() => {

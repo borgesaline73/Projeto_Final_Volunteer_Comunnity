@@ -129,6 +129,21 @@ CREATE TABLE destino_doacoes (
 );
 
 -- ===========================================
+-- TABELA DE RECUPERAÇÃO DE SENHA
+-- ===========================================
+CREATE TABLE recuperacao_senha (
+  id SERIAL PRIMARY KEY,
+  id_usuario INTEGER NOT NULL,
+  token VARCHAR(64) NOT NULL UNIQUE,
+  expira_em TIMESTAMP NOT NULL,
+  usado BOOLEAN DEFAULT FALSE,
+  criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_usuario
+    FOREIGN KEY (id_usuario)
+    REFERENCES usuarios(id_usuario)
+    ON DELETE CASCADE
+);
+-- ===========================================
 -- CRIAR ÍNDICES PARA PERFORMANCE
 -- ===========================================
 
