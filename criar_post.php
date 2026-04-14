@@ -51,18 +51,18 @@ if ($id_post > 0) {
 
 <div class="phone">
 
-  <!-- ÁREA COM SCROLL (IMPORTANTE) -->
+ 
   <div class="form-content">
 
-    <!-- HEADER -->
+    
     <div class="header">
       <button class="back" onclick="history.back()">←</button>
     </div>
 
-    <!-- TÍTULO -->
+   
     <h1><?= $modo_edicao ? 'Editar publicação' : 'Criar publicação' ?></h1>
 
-    <!-- FORM -->
+  
     <form action="salvar_post.php" method="POST" enctype="multipart/form-data">
 
       <?php if ($modo_edicao): ?>
@@ -70,7 +70,7 @@ if ($id_post > 0) {
         <input type="hidden" name="imagem_atual" value="<?= htmlspecialchars($post['imagem'] ?? '') ?>">
       <?php endif; ?>
 
-      <!-- TÍTULO -->
+      
       <input type="text" name="titulo"
         placeholder="Título da publicação"
         value="<?= $modo_edicao ? htmlspecialchars($post['titulo']) : '' ?>"
@@ -107,7 +107,6 @@ if ($id_post > 0) {
         </div>
       <?php endif; ?>
 
-      <!-- INPUT FILE -->
       <label class="label-file">
         <?= ($modo_edicao && !empty($post['imagem'])) ? 'Trocar imagem (opcional)' : 'Adicionar imagem (opcional)' ?>
       </label>
@@ -115,7 +114,6 @@ if ($id_post > 0) {
       <input type="file" name="imagem" accept="image/*" id="inputImagem">
       <div class="preview-nome" id="previewNome"></div>
 
-      <!-- BOTÃO -->
       <button type="submit">
         <?= $modo_edicao ? '💾 Salvar alterações' : '📢 Publicar' ?>
       </button>
@@ -124,7 +122,7 @@ if ($id_post > 0) {
 
   </div>
 
-  <!-- MENU FIXO (FORA DO SCROLL) -->
+  <!-- MENU FIXO -->
   <div class="bottom">
     <a href="feed.php" class="menu-item">🏠<span>Feed</span></a>
     <a href="campanhas.php" class="menu-item">

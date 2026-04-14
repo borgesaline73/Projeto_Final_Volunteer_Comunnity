@@ -144,14 +144,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       Não possui conta? <a href="cadastro.php">Crie agora</a>
     </p>
 
-  </div><!-- /content -->
-
+  </div>
 </section>
 
 <!-- SweetAlert2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
+
 // ─── Referência ao elemento .login-screen para confinar os modais ───────────
 const loginEl = document.getElementById('loginWrapper');
 
@@ -167,6 +167,7 @@ const swalLogin = Swal.mixin({
 });
 
 <?php if (!empty($mensagem_erro) && !empty($tipo_erro)): ?>
+  
 // Mostrar modal de erro dentro do telefone
 document.addEventListener('DOMContentLoaded', function() {
     swalLogin.fire({

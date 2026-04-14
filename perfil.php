@@ -143,7 +143,7 @@ $rotaPerfil = "perfil.php";
     overflow: hidden;
   }
 
-  /* Menu de abas - estilo pílulas */
+  /* Menu de abas  */
   .tab-menu {
     display: flex;
     gap: 8px;
@@ -233,7 +233,7 @@ $rotaPerfil = "perfil.php";
 
 <div class="phone" id="phoneWrapper">
 
-  <!-- HEADER -->
+  
   <div class="header">
     <span onclick="history.back()" style="cursor:pointer;">⬅</span>
     <div class="header-title">Meu Perfil</div>
@@ -444,7 +444,7 @@ const swalDoador = Swal.mixin({
     }
 })();
 
-// ===== SISTEMA DE ABAS (MESMO DO PERFIL DA ONG) =====
+// ===== SISTEMA DE ABAS (IGUAL DA ONG) =====
 document.addEventListener('DOMContentLoaded', function () {
   const tabs = document.querySelectorAll('.tab');
   const tabMenu = document.querySelector('.tab-menu');

@@ -35,7 +35,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 ":expira" => $expira,
             ]);
 
-            // Prepara o link de redefinição (CORRIGIDO PARA POSTGRESQL)
+            // Prepara o link de redefinição 
             $protocolo = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
             $host = $_SERVER["HTTP_HOST"];
             // Obtém o caminho base do projeto
@@ -183,7 +183,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         </div>
     </div>
 
-    <!-- Conteúdo -->
+    
     <div class="content">
 
         <h2>Recuperar senha</h2>
@@ -228,7 +228,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     Salve-o para usar depois se necessário.
                 </div>
                 
-                <!-- Informações de debug (opcional - remova em produção) -->
+                <!-- Informações de debug (lembrar de remover após concluir a projeto) -->
                 <div class="info-token">
                     <strong>📋 Informações técnicas:</strong><br>
                     Token: <?= htmlspecialchars(substr($token_gerado, 0, 20)) ?>...<br>

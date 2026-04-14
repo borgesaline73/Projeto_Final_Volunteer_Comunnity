@@ -1,4 +1,6 @@
+
 <?php
+//Arquivo para teste de login, deixar em stand by até finalizar tudo
 $senha = "123456";
 
 $hash = password_hash($senha, PASSWORD_DEFAULT);

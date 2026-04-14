@@ -1,4 +1,4 @@
-<?php
+<?php //Essa página não vai mais constar por enquanto no projeto! deixar em stand by até segunda ordem
 session_start();
 require "banco.php";
 

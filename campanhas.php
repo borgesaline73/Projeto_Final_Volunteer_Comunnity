@@ -59,7 +59,6 @@ function inicialNome($nome) {
 <body>
 <div class="phone">
 
-  <!-- HEADER -->
   <div class="header">
     <h1>ONGs <br>do Mês</h1>
 

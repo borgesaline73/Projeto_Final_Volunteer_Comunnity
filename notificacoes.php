@@ -248,7 +248,7 @@ if ($tipo === "instituicao") {
 
 <div class="phone">
 
-  <!-- HEADER -->
+
   <div class="header">
     <h1>Notificações 
       <?php if ($tipo === "instituicao"): ?>

@@ -88,7 +88,7 @@ if ($tipoUsuario === "instituicao") {
 
 <div class="phone" id="phoneWrapper">
 
-  <!-- HEADER -->
+ 
   <div class="header">
     <h1>Conexão Solidária</h1>
   </div>
@@ -205,7 +205,7 @@ if ($tipoUsuario === "instituicao") {
       <span>Campanhas</span>
     </a>
 
-    <!-- BOTÃO + CENTRAL -->
+   
     <button class="plus-btn" onclick="window.location.href='<?= $acaoPlus ?>'">+</button>
 
     <a href="notificacoes.php" class="menu-item">

@@ -119,8 +119,8 @@ $rotaPerfil = "perfil-ong.php";
    * que o overlay com position: absolute fique preso nele.
    */
   .phone {
-    position: relative; /* garante o contexto de posicionamento */
-    overflow: hidden;   /* corta qualquer coisa que vaze */
+    position: relative; 
+    overflow: hidden;   
   }
 
   /* Overlay fica sobre o .phone, não sobre a página inteira */
@@ -155,7 +155,7 @@ $rotaPerfil = "perfil-ong.php";
 
 <div class="phone" id="phoneWrapper">
 
-  <!-- HEADER -->
+=
   <div class="header">
     <span onclick="history.back()" style="cursor:pointer;">⬅</span>
     <div class="header-title">Perfil da ONG</div>
@@ -353,7 +353,7 @@ $rotaPerfil = "perfil-ong.php";
       <?php endif; ?>
     </div>
 
-  </div><!-- fim .main-content -->
+  </div>
 
   <!-- MODAL ADICIONAR ITEM -->
   <div class="modal-overlay" id="modalItem" style="display:none;">
@@ -389,7 +389,7 @@ $rotaPerfil = "perfil-ong.php";
     </a>
   </div>
 
-</div><!-- fim .phone -->
+</div>
 
 <!-- SweetAlert2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

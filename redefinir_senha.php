@@ -21,11 +21,11 @@ if ($token) {
     $registro = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($registro) {
-        // CORREÇÃO: Converter timestamp do PostgreSQL para timestamp do PHP
+        
         $expira_em = strtotime($registro["expira_em"]);
         $agora = time();
         
-        // Debug (remova depois)
+        // Debug (lembrar de remover depois do projeto pronto)
         error_log("Token encontrado: " . $token);
         error_log("Expira em: " . $registro["expira_em"]);
         error_log("Expira timestamp: " . $expira_em);

@@ -57,7 +57,7 @@ try {
             exit;
         }
         
-        // Marcar UMA coleta específica como visualizada
+        // Marcar uma coleta específica como visualizada
         $sql = "INSERT INTO coletas_visualizadas (id_ong, id_doacao, visualizada) 
                 VALUES (?, ?, TRUE)
                 ON CONFLICT (id_ong, id_doacao) 

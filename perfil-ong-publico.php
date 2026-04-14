@@ -68,7 +68,7 @@ try {
 
 <div class="phone">
 
-  <!-- HEADER -->
+ 
   <div class="header">
     <span onclick="history.back()" style="cursor:pointer;">⬅</span>
     <div class="header-title"><?= htmlspecialchars($nome_ong) ?></div>
@@ -203,7 +203,7 @@ try {
 
     </div>
 
-  </div><!-- fim main-content -->
+  </div>
 
   <!-- MENU INFERIOR -->
   <div class="bottom">

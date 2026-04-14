@@ -1,4 +1,4 @@
-<?php
+<?php //Página para teste e usuário
 require "banco.php";
 
 echo "<h2>Verificando usuários no banco</h2>";

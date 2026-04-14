@@ -50,12 +50,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $pdo->beginTransaction();
         
-        // 1. Atualizar status da doação para RECEBIDA
+        // Atualizar status da doação para RECEBIDA
         $sql_update = "UPDATE doacoes SET status = 'RECEBIDA', data_doacao = CURRENT_TIMESTAMP WHERE id_doacao = ?";
         $stmt_update = $pdo->prepare($sql_update);
         $stmt_update->execute([$id_doacao]);
         
-        // 2. Criar notificação para o doador
+        // Criar notificação para o doador
         $mensagem_notificacao = "Sua doação para " . $_SESSION["usuario_nome"] . " foi recebida e confirmada! 🎉";
         $sql_notificacao = "INSERT INTO notificacoes (id_usuario, mensagem, tipo) VALUES (?, ?, 'DOACAO_RECEBIDA')";
         $stmt_notificacao = $pdo->prepare($sql_notificacao);

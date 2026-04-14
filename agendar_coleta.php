@@ -80,7 +80,7 @@ try {
     error_log("Erro ao buscar doador: " . $e->getMessage());
 }
 
-// Variáveis do formulário
+
 $data_selecionada    = $_POST['data_coleta']    ?? '';
 $horario_selecionado = $_POST['horario']         ?? '';
 $local_selecionado   = $_POST['local_coleta']    ?? '';
@@ -236,7 +236,6 @@ $mes_atual = (int)date('m');
 
 <div class="phone" id="phoneWrapper">
 
-  <!-- HEADER -->
   <div class="header">
     <span onclick="history.back()" style="cursor:pointer;">⬅</span>
     <div class="header-title"><?= $mostrar_formulario ? 'Agendar Coleta' : 'Escolher ONG' ?></div>
@@ -446,7 +445,7 @@ $mes_atual = (int)date('m');
     </form>
     <?php endif; ?>
 
-  </div><!-- fim main-content -->
+  </div>
 
   <!-- MENU INFERIOR -->
   <div class="bottom">
