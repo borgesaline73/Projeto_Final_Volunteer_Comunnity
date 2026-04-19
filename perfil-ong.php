@@ -24,6 +24,17 @@ if ($tipo !== "instituicao") {
 
 $id_ong = $_SESSION["usuario_id"];
 
+// Buscar chave PIX da ONG
+$chave_pix = null;
+try {
+    $stmt = $pdo->prepare("SELECT chave_pix FROM ongs WHERE id_ong = ?");
+    $stmt->execute([$id_ong]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    $chave_pix = $result['chave_pix'] ?? null;
+} catch (PDOException $e) {
+    error_log("Erro ao buscar chave PIX: " . $e->getMessage());
+}
+
 try {
     $sql_ong = "SELECT nome, email, tipo_usuario FROM usuarios WHERE id_usuario = ?";
     $stmt_ong = $pdo->prepare($sql_ong);
@@ -149,13 +160,62 @@ $rotaPerfil = "perfil-ong.php";
     width: auto !important;
     height: auto !important;
   }
+
+  /* Estilo do botão PIX */
+  .btn-pix {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 20px;
+    margin-top: 15px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .btn-pix:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  }
+
+  .pix-status {
+    font-size: 12px;
+    margin-top: 10px;
+    padding: 8px;
+    border-radius: 8px;
+    text-align: center;
+  }
+
+  .pix-status.cadastrada {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  .pix-status.nao-cadastrada {
+    background: #fff3cd;
+    color: #856404;
+  }
+
+  .pix-key-preview {
+    font-family: monospace;
+    word-break: break-all;
+    font-size: 11px;
+    margin-top: 5px;
+    color: #666;
+  }
 </style>
 </head>
 <body>
 
 <div class="phone" id="phoneWrapper">
 
-=
   <div class="header">
     <span onclick="history.back()" style="cursor:pointer;">⬅</span>
     <div class="header-title">Perfil da ONG</div>
@@ -173,6 +233,21 @@ $rotaPerfil = "perfil-ong.php";
       <div class="info-item"><strong>Tipo de Conta:</strong>
         <?= $tipo_usuario === 'instituicao' ? 'Instituição' : htmlspecialchars($tipo_usuario) ?>
       </div>
+      
+      <!-- Status da Chave PIX -->
+      <div class="pix-status <?= !empty($chave_pix) ? 'cadastrada' : 'nao-cadastrada' ?>">
+        <?php if (!empty($chave_pix)): ?>
+          💜 Chave PIX cadastrada
+          <div class="pix-key-preview"><?= htmlspecialchars(substr($chave_pix, 0, 20)) . (strlen($chave_pix) > 20 ? '...' : '') ?></div>
+        <?php else: ?>
+          ⚠️ Nenhuma chave PIX cadastrada
+        <?php endif; ?>
+      </div>
+      
+      <!-- Botão para Gerenciar PIX -->
+      <button class="btn-pix" onclick="window.location.href='gerenciar_pix.php'">
+        💜 Gerenciar Chave PIX
+      </button>
     </div>
 
     <!-- MENU DE ABAS -->

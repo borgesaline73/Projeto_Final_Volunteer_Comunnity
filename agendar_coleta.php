@@ -35,10 +35,10 @@ try {
     $categoria_exists = $stmt_check->fetch(PDO::FETCH_ASSOC);
 
     $sql_ongs = $categoria_exists
-        ? "SELECT u.id_usuario, u.nome, u.email, u.cpf_cnpj, o.endereco, o.descricao, o.categoria 
+        ? "SELECT u.id_usuario, u.nome, u.email, u.cpf_cnpj, o.endereco, o.descricao, o.categoria, o.chave_pix 
            FROM usuarios u LEFT JOIN ongs o ON u.id_usuario = o.id_ong 
            WHERE u.tipo_usuario = 'instituicao' ORDER BY u.nome ASC"
-        : "SELECT u.id_usuario, u.nome, u.email, u.cpf_cnpj, o.endereco, o.descricao 
+        : "SELECT u.id_usuario, u.nome, u.email, u.cpf_cnpj, o.endereco, o.descricao, o.chave_pix 
            FROM usuarios u LEFT JOIN ongs o ON u.id_usuario = o.id_ong 
            WHERE u.tipo_usuario = 'instituicao' ORDER BY u.nome ASC";
 
@@ -62,7 +62,7 @@ try {
 $ong_selecionada = null;
 
 function buscarOng($pdo, $id) {
-    $stmt = $pdo->prepare("SELECT u.nome, u.email, u.cpf_cnpj, o.endereco, o.id_ong, o.descricao
+    $stmt = $pdo->prepare("SELECT u.nome, u.email, u.cpf_cnpj, o.endereco, o.id_ong, o.descricao, o.chave_pix
                            FROM usuarios u LEFT JOIN ongs o ON u.id_usuario = o.id_ong 
                            WHERE u.id_usuario = ? AND u.tipo_usuario = 'instituicao'");
     $stmt->execute([$id]);
@@ -76,8 +76,15 @@ try {
     $stmt->execute([$id_doador]);
     $doador_info     = $stmt->fetch(PDO::FETCH_ASSOC);
     $id_doador_table = $doador_info['id_doador'] ?? null;
+    
+    // Se não existir, criar automaticamente
+    if (!$id_doador_table) {
+        $stmt = $pdo->prepare("INSERT INTO doadores (id_doador, data_cadastro) VALUES (?, CURRENT_DATE)");
+        $stmt->execute([$id_doador]);
+        $id_doador_table = $id_doador;
+    }
 } catch (PDOException $e) {
-    error_log("Erro ao buscar doador: " . $e->getMessage());
+    error_log("Erro ao buscar/criar doador: " . $e->getMessage());
 }
 
 
@@ -116,12 +123,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pdo->beginTransaction();
 
                 $data_hora_agendada = $data_selecionada . ' ' . $horario_selecionado . ':00';
-                $valor     = ($tipo_doacao === 'DINHEIRO' && !empty($valor_doacao)) ? $valor_doacao : null;
+                $valor     = ($tipo_doacao === 'DINHEIRO' && !empty($valor_doacao)) ? floatval($valor_doacao) : null;
                 $descricao = ($tipo_doacao === 'ITEM') ? $descricao_item : null;
+                $metodo_pagamento = ($tipo_doacao === 'DINHEIRO') ? 'PIX' : 'DIRETO';
+                $status_pagamento = ($tipo_doacao === 'DINHEIRO') ? 'PENDENTE' : null;
 
-                $stmt_doacao = $pdo->prepare("INSERT INTO doacoes (id_doador, id_ong, tipo, status, descricao_item, valor) 
-                                              VALUES (?, ?, ?, 'AGENDADA', ?, ?)");
-                $stmt_doacao->execute([$id_doador_table, $ong_escolhida, $tipo_doacao, $descricao, $valor]);
+                $stmt_doacao = $pdo->prepare("INSERT INTO doacoes (id_doador, id_ong, tipo, status, descricao_item, valor, metodo_pagamento, status_pagamento, data_criacao) 
+                                              VALUES (?, ?, ?, 'AGENDADA', ?, ?, ?, ?, CURRENT_TIMESTAMP)");
+                $stmt_doacao->execute([$id_doador_table, $ong_escolhida, $tipo_doacao, $descricao, $valor, $metodo_pagamento, $status_pagamento]);
                 $id_doacao = $pdo->lastInsertId();
 
                 $stmt_coleta = $pdo->prepare("INSERT INTO coletas (id_doacao, tipo, endereco, data_agendada) 
@@ -230,6 +239,68 @@ $mes_atual = (int)date('m');
         font-weight: 600 !important;
         font-size: 13px !important;
     }
+
+    /* ESTILOS PIX */
+    .pix-info-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 15px;
+        padding: 20px;
+        margin: 15px 0;
+        color: white;
+        text-align: center;
+    }
+
+    .pix-info-section h3 {
+        margin: 0 0 10px 0;
+        font-size: 16px;
+    }
+
+    .pix-key-box {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        padding: 15px;
+        margin: 10px 0;
+        word-break: break-all;
+        font-weight: 600;
+        font-size: 13px;
+    }
+
+    .pix-copy-btn {
+        background: white;
+        color: #667eea;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 15px;
+        margin-top: 10px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 12px;
+        transition: all 0.3s ease;
+    }
+
+    .pix-copy-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .pix-copy-btn.copied {
+        background: #4CAF50;
+        color: white;
+    }
+
+    .pix-instructions {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 10px;
+        font-size: 11px;
+        text-align: left;
+    }
+
+    .pix-instructions ol {
+        margin: 5px 0;
+        padding-left: 20px;
+    }
 </style>
 </head>
 <body>
@@ -292,7 +363,8 @@ $mes_atual = (int)date('m');
                      data-id="<?= $ong['id_usuario'] ?>"
                      data-nome="<?= htmlspecialchars($ong['nome'] ?? '') ?>"
                      data-descricao="<?= htmlspecialchars($ong['descricao'] ?? '') ?>"
-                     onclick="selecionarOng(<?= $ong['id_usuario'] ?>, '<?= htmlspecialchars(addslashes($ong['nome'] ?? '')) ?>')">
+                     data-chavepix="<?= htmlspecialchars($ong['chave_pix'] ?? '') ?>"
+                     onclick="selecionarOng(<?= $ong['id_usuario'] ?>, '<?= htmlspecialchars(addslashes($ong['nome'] ?? '')) ?>', '<?= htmlspecialchars(addslashes($ong['chave_pix'] ?? '')) ?>')">
                   <h3><?= htmlspecialchars($ong['nome'] ?? 'Instituição sem nome') ?></h3>
                   <?php if (!empty($ong['email'])): ?>
                     <p>📧 <?= htmlspecialchars($ong['email']) ?></p>
@@ -305,6 +377,9 @@ $mes_atual = (int)date('m');
                   <?php endif; ?>
                   <?php if (!empty($ong['cpf_cnpj'])): ?>
                     <div class="cnpj">CNPJ: <?= htmlspecialchars($ong['cpf_cnpj']) ?></div>
+                  <?php endif; ?>
+                  <?php if (!empty($ong['chave_pix'])): ?>
+                    <div class="pix-badge" style="font-size: 10px; color: #667eea; margin-top: 5px;">💜 Aceita PIX</div>
                   <?php endif; ?>
                   <input type="radio" name="ong_escolhida" value="<?= $ong['id_usuario'] ?>"
                          <?= $ong_escolhida == $ong['id_usuario'] ? 'checked' : '' ?>
@@ -364,6 +439,34 @@ $mes_atual = (int)date('m');
       <div class="valor-doacao" id="valorDoacaoContainer">
         <div class="section">Valor da Doação (R$)</div>
         <input type="number" name="valor_doacao" id="valor_doacao" placeholder="0,00" step="0.01" min="0" value="<?= htmlspecialchars($valor_doacao) ?>">
+        
+        <!-- SEÇÃO PIX - EXIBIDA QUANDO SELECIONADO DINHEIRO E ONG TEM CHAVE PIX -->
+        <?php if (!empty($ong_selecionada['chave_pix'])): ?>
+        <div class="pix-info-section" id="pixInfoSection" style="display: none;">
+          <h3>💜 PIX - Transferência Instantânea</h3>
+          <p style="font-size: 12px; margin: 5px 0;">Copie a chave PIX e faça a transferência em seu banco:</p>
+          
+          <div class="pix-key-box" id="pixKeyBox">
+            <?= htmlspecialchars($ong_selecionada['chave_pix']) ?>
+          </div>
+          
+          <button type="button" class="pix-copy-btn" id="pixCopyBtn" onclick="copyPixKey()">
+            📋 Copiar Chave PIX
+          </button>
+          
+          <div class="pix-instructions">
+            <strong>📌 Como fazer a transferência:</strong>
+            <ol>
+              <li>Copie a chave PIX acima</li>
+              <li>Abra seu banco ou app de pagamentos</li>
+              <li>Selecione "Transferência PIX"</li>
+              <li>Cole a chave e informe o valor</li>
+              <li>Confirme a transferência</li>
+              <li>O sistema registrará sua doação como pendente</li>
+            </ol>
+          </div>
+        </div>
+        <?php endif; ?>
       </div>
 
       <?php if ($data_selecionada): ?>
@@ -482,6 +585,27 @@ let selectedDate = '<?= $data_selecionada ?>';
 let selectedTime = '<?= $horario_selecionado ?>';
 let selectedTipo = '<?= $tipo_doacao ?>';
 
+// ===== FUNÇÃO PARA COPIAR CHAVE PIX =====
+function copyPixKey() {
+    const pixKeyBox = document.getElementById('pixKeyBox');
+    if (!pixKeyBox) return;
+    
+    const pixKey = pixKeyBox.textContent.trim();
+    const btn = document.getElementById('pixCopyBtn');
+    
+    navigator.clipboard.writeText(pixKey).then(() => {
+        btn.textContent = '✅ Copiado!';
+        btn.classList.add('copied');
+        
+        setTimeout(() => {
+            btn.textContent = '📋 Copiar Chave PIX';
+            btn.classList.remove('copied');
+        }, 2000);
+    }).catch(err => {
+        alert('Erro ao copiar: ' + err);
+    });
+}
+
 // ===== FUNÇÃO PARA GERAR O CALENDÁRIO =====
 function updateCalendar() {
     const monthSelect = document.getElementById('monthSelect');
@@ -565,7 +689,10 @@ function filterOngs() {
     checkOngSelection();
 }
 
-function selecionarOng(idOng, nomeOng) {
+let selectedOngPixKey = '';
+
+function selecionarOng(idOng, nomeOng, chavePix) {
+    selectedOngPixKey = chavePix;
     document.querySelectorAll('.ong-card.selected').forEach(el => el.classList.remove('selected'));
     const card = event.currentTarget;
     card.classList.add('selected');
@@ -584,8 +711,12 @@ function checkOngSelection() {
 function updateTipoDisplay() {
     const descricaoContainer = document.getElementById('descricaoItemContainer');
     const valorContainer     = document.getElementById('valorDoacaoContainer');
+    const pixSection        = document.getElementById('pixInfoSection');
+    
     if (descricaoContainer) descricaoContainer.style.display = selectedTipo === 'ITEM' ? 'block' : 'none';
     if (valorContainer) valorContainer.style.display = selectedTipo === 'DINHEIRO' ? 'block' : 'none';
+    if (pixSection) pixSection.style.display = selectedTipo === 'DINHEIRO' ? 'block' : 'none';
+    
     checkFormCompletion();
 }
 
@@ -653,6 +784,7 @@ async function confirmarAgendamento() {
     const horario = document.getElementById('horario').value;
     const local = document.getElementById('localColeta').value;
     const nomeOng = '<?= addslashes($ong_selecionada['nome'] ?? '') ?>';
+    const pixKey = '<?= addslashes($ong_selecionada['chave_pix'] ?? '') ?>';
     
     if (!data || !horario || !local) {
         await swalAgendar.fire({
@@ -686,7 +818,16 @@ async function confirmarAgendamento() {
             });
             return;
         }
-        resumo = `<strong>💰 Valor:</strong> R$ ${parseFloat(valorDoacao).toFixed(2).replace('.', ',')}<br>`;
+        
+        let pixHtml = '';
+        if (pixKey) {
+            pixHtml = `<div style="background: #f0f4ff; border-radius: 8px; padding: 10px; margin: 10px 0; font-size: 11px;">
+                <strong style="color: #667eea;">💜 Chave PIX da ONG:</strong><br>
+                <code style="word-break: break-all;">${pixKey}</code>
+            </div>`;
+        }
+        
+        resumo = `<strong>💰 Valor:</strong> R$ ${parseFloat(valorDoacao).toFixed(2).replace('.', ',')}<br>${pixHtml}`;
     }
     
     const mensagem = `
