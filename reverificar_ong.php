@@ -1,113 +1,105 @@
 <?php
+/**
+ * reverificar_ong.php
+ * 
+ * Chamado via GET pelo painel admin quando uma ONG ficou como
+ * "pendente" (falha de conexão no momento do cadastro).
+ * Retorna JSON com o resultado da nova tentativa.
+ */
+
 session_start();
 require "banco.php";
 
 header('Content-Type: application/json');
 
+// Só admin logado pode chamar este endpoint
 if (!isset($_SESSION["usuario_id"])) {
     echo json_encode(['status' => 'erro', 'mensagem' => 'Não autorizado.']);
     exit;
 }
 
-// Rate limiting básico
-if (isset($_SESSION['ultima_consulta']) && (time() - $_SESSION['ultima_consulta']) < 5) {
-    echo json_encode([
-        'status' => 'pendente',
-        'mensagem' => 'Aguarde 5 segundos entre as consultas para evitar bloqueio da API.'
-    ]);
-    exit;
-}
-$_SESSION['ultima_consulta'] = time();
-
-$id_ong = (int)($_GET['id'] ?? 0);
-$cnpj = trim($_GET['cnpj'] ?? '');
+$id_ong = (int)($_GET['id']   ?? 0);
+$cnpj   = trim($_GET['cnpj']  ?? '');
 
 if ($id_ong <= 0 || empty($cnpj)) {
     echo json_encode(['status' => 'erro', 'mensagem' => 'Parâmetros inválidos.']);
     exit;
 }
 
+// ── Confirma que a ONG existe e está pendente ─────────────────────────────────
+$stmt = $pdo->prepare("SELECT id_usuario, verificacao_status FROM usuarios WHERE id_usuario = ? AND tipo_usuario = 'instituicao'");
+$stmt->execute([$id_ong]);
+$ong = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$ong) {
+    echo json_encode(['status' => 'erro', 'mensagem' => 'ONG não encontrada.']);
+    exit;
+}
+
+// ── Consulta à BrasilAPI ──────────────────────────────────────────────────────
 $cnpj_limpo = preg_replace('/\D/', '', $cnpj);
 
-if (strlen($cnpj_limpo) != 14) {
-    $pdo->prepare("UPDATE usuarios SET verificada = false, verificacao_status = 'rejeitada' WHERE id_usuario = ?")
-        ->execute([$id_ong]);
-    echo json_encode(['status' => 'rejeitada', 'mensagem' => 'CNPJ inválido']);
+$ch = curl_init("https://brasilapi.com.br/api/cnpj/v1/{$cnpj_limpo}");
+curl_setopt_array($ch, [
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_TIMEOUT        => 10,
+    CURLOPT_HTTPHEADER     => ['Accept: application/json'],
+    CURLOPT_SSL_VERIFYPEER => true,
+]);
+$response  = curl_exec($ch);
+$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+$curl_erro = curl_error($ch);
+curl_close($ch);
+
+// ── Falha de rede → mantém pendente ──────────────────────────────────────────
+if ($curl_erro || $response === false) {
+    echo json_encode([
+        'status'   => 'pendente',
+        'mensagem' => 'Não foi possível conectar à Receita Federal. Tente novamente mais tarde.'
+    ]);
     exit;
 }
 
-// ========== FUNÇÃO DE CONSULTA COM FALLBACK ==========
-function consultarCNPJ($cnpj) {
-    // Tentativa 1: BrasilAPI
-    $ch = curl_init("https://brasilapi.com.br/api/cnpj/v1/{$cnpj}");
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 10,
-        CURLOPT_SSL_VERIFYPEER => false,
-    ]);
-    $response = curl_exec($ch);
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    
-    // Se BrasilAPI falhou por rate limit (429), tenta ReceitaWS
-    if ($http_code == 429) {
-        sleep(2); // Aguarda 2 segundos
-        
-        $ch2 = curl_init("https://receitaws.com.br/v1/cnpj/{$cnpj}");
-        curl_setopt_array($ch2, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 10,
-            CURLOPT_SSL_VERIFYPEER => false,
+$data = json_decode($response, true);
+
+// ── CNPJ encontrado e API respondeu OK → verifica situação cadastral ─────────
+if ($http_code === 200 && !empty($data['razao_social'])) {
+    $situacao = strtoupper(trim($data['descricao_situacao_cadastral'] ?? ''));
+
+    if ($situacao === 'ATIVA') {
+        // ✅ Ativo → aprova
+        $pdo->prepare("UPDATE usuarios SET verificada = true, verificacao_status = 'aprovada' WHERE id_usuario = ?")
+            ->execute([$id_ong]);
+        echo json_encode([
+            'status'   => 'aprovada',
+            'mensagem' => 'CNPJ verificado! ONG aprovada automaticamente.'
         ]);
-        $response = curl_exec($ch2);
-        $http_code = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
-        curl_close($ch2);
+    } else {
+        // ❌ Encontrado mas situação não é ATIVA (BAIXADA, SUSPENSA, INAPTA etc.)
+        $pdo->prepare("UPDATE usuarios SET verificada = false, verificacao_status = 'rejeitada' WHERE id_usuario = ?")
+            ->execute([$id_ong]);
+        echo json_encode([
+            'status'   => 'rejeitada',
+            'mensagem' => "CNPJ encontrado, mas com situação: {$situacao}. Apenas CNPJs com situação ATIVA são aceitos."
+        ]);
     }
-    
-    return ['http_code' => $http_code, 'data' => json_decode($response, true)];
+    exit;
 }
 
-$resultado = consultarCNPJ($cnpj_limpo);
-$http_code = $resultado['http_code'];
-$data = $resultado['data'];
-
-// Erro 429 (muitas requisições)
-if ($http_code == 429) {
+// Rate limit (429), 5xx ou qualquer erro temporário → mantém pendente
+if ($http_code === 429 || ($http_code >= 400 && $http_code !== 404) || $http_code >= 500) {
     echo json_encode([
-        'status' => 'pendente',
-        'mensagem' => '⚠️ Muitas consultas no momento. A API bloqueou temporariamente. Aguarde 1 minuto e tente novamente.'
+        'status'   => 'pendente',
+        'mensagem' => 'Serviço da Receita Federal indisponível no momento. Tente novamente mais tarde.'
     ]);
     exit;
 }
 
-// Outros erros
-if ($http_code != 200 || empty($data['razao_social'])) {
-    $pdo->prepare("UPDATE usuarios SET verificada = false, verificacao_status = 'pendente' WHERE id_usuario = ?")
-        ->execute([$id_ong]);
-    echo json_encode([
-        'status' => 'pendente',
-        'mensagem' => 'Não foi possível verificar o CNPJ no momento. Tente novamente em alguns instantes.'
-    ]);
-    exit;
-}
+// ── CNPJ não encontrado na Receita Federal (404) → rejeita ───────────────────
+$pdo->prepare("UPDATE usuarios SET verificada = false, verificacao_status = 'rejeitada' WHERE id_usuario = ?")
+    ->execute([$id_ong]);
 
-// Verifica situação cadastral
-$situacao = $data['descricao_situacao_cadastral'] ?? $data['situacao'] ?? $data['situacao_cadastral'] ?? '';
-
-if (strtoupper(trim($situacao)) == 'ATIVA') {
-    $pdo->prepare("UPDATE usuarios SET verificada = true, verificacao_status = 'aprovada' WHERE id_usuario = ?")
-        ->execute([$id_ong]);
-    echo json_encode([
-        'status' => 'aprovada',
-        'mensagem' => '✅ CNPJ verificado! ONG aprovada.',
-        'razao_social' => $data['razao_social']
-    ]);
-} else {
-    $pdo->prepare("UPDATE usuarios SET verificada = false, verificacao_status = 'rejeitada' WHERE id_usuario = ?")
-        ->execute([$id_ong]);
-    echo json_encode([
-        'status' => 'rejeitada',
-        'mensagem' => '❌ CNPJ com situação: ' . ($situacao ?: 'não informada')
-    ]);
-}
-?>
+echo json_encode([
+    'status'   => 'rejeitada',
+    'mensagem' => $data['message'] ?? 'CNPJ não encontrado na Receita Federal.'
+]);

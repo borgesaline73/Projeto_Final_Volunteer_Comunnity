@@ -12,12 +12,14 @@ function verificarCNPJAutomatico(PDO $pdo, int $id_usuario, string $cnpj): array
 {
     $cnpj_limpo = preg_replace('/\D/', '', $cnpj);
 
+    // CNPJ com dígitos inválidos → rejeita imediatamente
     if (strlen($cnpj_limpo) !== 14) {
         $pdo->prepare("UPDATE usuarios SET verificada = false, verificacao_status = 'rejeitada' WHERE id_usuario = ?")
             ->execute([$id_usuario]);
         return ['status' => 'rejeitada', 'mensagem' => 'CNPJ inválido (deve ter 14 dígitos).'];
     }
 
+    // Consulta à BrasilAPI
     $ch = curl_init("https://brasilapi.com.br/api/cnpj/v1/{$cnpj_limpo}");
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -30,6 +32,7 @@ function verificarCNPJAutomatico(PDO $pdo, int $id_usuario, string $cnpj): array
     $curl_erro = curl_error($ch);
     curl_close($ch);
 
+    // Falha de rede → pendente (não penaliza a ONG por instabilidade)
     if ($curl_erro || $response === false) {
         $pdo->prepare("UPDATE usuarios SET verificada = false, verificacao_status = 'pendente' WHERE id_usuario = ?")
             ->execute([$id_usuario]);
@@ -38,47 +41,50 @@ function verificarCNPJAutomatico(PDO $pdo, int $id_usuario, string $cnpj): array
 
     $data = json_decode($response, true);
 
-    // CNPJ não encontrado
-    if ($http_code === 404) {
-        $pdo->prepare("UPDATE usuarios SET verificada = false, verificacao_status = 'rejeitada' WHERE id_usuario = ?")
-            ->execute([$id_usuario]);
-        return ['status' => 'rejeitada', 'mensagem' => 'CNPJ não encontrado na Receita Federal.'];
-    }
-
-    // Erro na API
-    if ($http_code !== 200 || empty($data['razao_social'])) {
+    // ── CORREÇÃO: verificar HTTP code ANTES de ler o corpo do JSON ──────────
+    // Rate limit (429) ou qualquer erro 4xx que não seja 404 → pendente
+    // (o JSON de erro da BrasilAPI não tem razao_social, o que causava rejeição indevida)
+    if ($http_code === 429 || ($http_code >= 400 && $http_code !== 404)) {
         $pdo->prepare("UPDATE usuarios SET verificada = false, verificacao_status = 'pendente' WHERE id_usuario = ?")
             ->execute([$id_usuario]);
         return ['status' => 'pendente', 'mensagem' => 'Não foi possível validar o CNPJ no momento. Entraremos em contato em breve.'];
     }
 
-    // ⭐ VERIFICA SITUAÇÃO CADASTRAL
-    $situacao = $data['descricao_situacao_cadastral'] ?? $data['situacao_cadastral'] ?? '';
-    $situacao_normalizada = strtolower(trim($situacao));
-    
-    $cnpj_ativo = (
-        $situacao_normalizada === 'ativa' ||
-        $situacao_normalizada === 'atividade' ||
-        $situacao_normalizada === '2'
-    );
-    
-    $cnpj_suspenso = (
-        str_contains($situacao_normalizada, 'suspensa') ||
-        str_contains($situacao_normalizada, 'baixado') ||
-        str_contains($situacao_normalizada, 'nula') ||
-        str_contains($situacao_normalizada, 'inapta')
-    );
+    // CNPJ não encontrado na Receita Federal → rejeita
+    if ($http_code === 404 || empty($data['razao_social'])) {
+        $pdo->prepare("UPDATE usuarios SET verificada = false, verificacao_status = 'rejeitada' WHERE id_usuario = ?")
+            ->execute([$id_usuario]);
+        return ['status' => 'rejeitada', 'mensagem' => 'CNPJ não encontrado na Receita Federal.'];
+    }
 
-    if ($cnpj_ativo && !$cnpj_suspenso) {
+    // Erro inesperado da API (5xx etc.) → pendente
+    if ($http_code !== 200) {
+        $pdo->prepare("UPDATE usuarios SET verificada = false, verificacao_status = 'pendente' WHERE id_usuario = ?")
+            ->execute([$id_usuario]);
+        return ['status' => 'pendente', 'mensagem' => 'Não foi possível validar o CNPJ no momento. Entraremos em contato em breve.'];
+    }
+
+    // ── CNPJ encontrado → verifica situação cadastral ──────────────────
+    // A BrasilAPI retorna o campo como "descricao_situacao_cadastral"
+    // Exemplos de valores: "ATIVA", "BAIXADA", "SUSPENSA", "INAPTA", "NULA"
+    $situacao = strtoupper(trim(
+        $data['descricao_situacao_cadastral'] ?? ''
+    ));
+
+    if ($situacao === 'ATIVA') {
+        // ✅ CNPJ válido e ativo
         $pdo->prepare("UPDATE usuarios SET verificada = true, verificacao_status = 'aprovada' WHERE id_usuario = ?")
             ->execute([$id_usuario]);
         return ['status' => 'aprovada', 'mensagem' => 'CNPJ verificado com sucesso! Sua ONG foi aprovada automaticamente.'];
     }
 
-    // CNPJ inativo
+    // ❌ CNPJ encontrado mas situação não é ATIVA (BAIXADA, SUSPENSA, INAPTA, NULA...)
     $pdo->prepare("UPDATE usuarios SET verificada = false, verificacao_status = 'rejeitada' WHERE id_usuario = ?")
         ->execute([$id_usuario]);
-    return ['status' => 'rejeitada', 'mensagem' => "CNPJ com situação cadastral: {$situacao}. A ONG precisa estar ativa na Receita Federal."];
+    return [
+        'status'   => 'rejeitada',
+        'mensagem' => "CNPJ com situação: \"{$situacao}\". Apenas instituições com CNPJ ATIVO são aceitas.",
+    ];
 }
 
 // ════════════════════════════════════════════════════════════
@@ -129,7 +135,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $stmt = $pdo->prepare("INSERT INTO doadores (id_doador) VALUES (:id)");
                 $stmt->execute([":id" => $userId]);
 
-                // Doadores não precisam de verificação → redireciona direto
                 $success_msg = urlencode("✅ Cadastro realizado com sucesso! Faça login para continuar.");
                 header("Location: login.php?msg=$success_msg&tipo=success");
                 exit;
@@ -143,14 +148,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 // ══ VERIFICAÇÃO AUTOMÁTICA DO CNPJ ══════════════════════════
                 $resultado = verificarCNPJAutomatico($pdo, $userId, $cpf_cnpj);
 
-                // Monta mensagem de redirecionamento conforme resultado
                 switch ($resultado['status']) {
                     case 'aprovada':
                         $msg  = urlencode("✅ Cadastro realizado! " . $resultado['mensagem']);
                         $tipo = "success";
                         break;
                     case 'rejeitada':
-                        $msg  = urlencode("⚠️ Cadastro salvo, mas o CNPJ não foi verificado: " . $resultado['mensagem'] . " Entre em contato com o suporte.");
+                        $msg  = urlencode("⚠️ Cadastro salvo, mas CNPJ não verificado: " . $resultado['mensagem']);
                         $tipo = "warning";
                         break;
                     default: // pendente
@@ -211,7 +215,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
         .swal2-confirm:hover { background-color: #e67329 !important; }
 
-        /* Aviso de verificação automática visível ao selecionar Instituição */
         #aviso-verificacao {
             display: none;
             background: #fff8f0;
@@ -296,10 +299,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         Você está se cadastrando como: <span id="role-text">Doador</span>
                     </div>
 
-                    <!-- Aviso de verificação automática (aparece ao selecionar Instituição) -->
                     <div id="aviso-verificacao">
                         🔍 <strong>Verificação automática:</strong> ao cadastrar, seu CNPJ será consultado
-                        na Receita Federal. ONGs com CNPJ válido e ativo são aprovadas na hora.
+                        na Receita Federal. ONGs com CNPJ válido e <strong>ativo</strong> são aprovadas na hora.
                     </div>
 
                     <button class="btn-primary" type="submit" id="btnCadastrar">Cadastrar</button>
@@ -332,10 +334,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <?php endif; ?>
 
         // ─── Role: atualizar texto e aviso ────────────────────────────────────────
-        const doador         = document.getElementById("role-doador");
-        const inst           = document.getElementById("role-inst");
-        const roleText       = document.getElementById("role-text");
-        const avisoVerif     = document.getElementById("aviso-verificacao");
+        const doador     = document.getElementById("role-doador");
+        const inst       = document.getElementById("role-inst");
+        const roleText   = document.getElementById("role-text");
+        const avisoVerif = document.getElementById("aviso-verificacao");
 
         function atualizarRole() {
             const isInst = inst.checked;
@@ -381,7 +383,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     return;
                 }
 
-                // Avisa que a verificação pode levar alguns segundos
+                // Loading enquanto consulta a Receita Federal
                 swalCadastro.fire({
                     title: '🔍 Verificando CNPJ...',
                     html: 'Consultando a Receita Federal.<br><small>Isso pode levar alguns segundos.</small>',
