@@ -22,8 +22,8 @@ try {
             exit;
         }
 
-        // Evita duplicata
-        $chk = $pdo->prepare("SELECT id_item FROM itens_ong WHERE id_ong=? AND nome=? AND tipo=?");
+        // Verifica duplicata - CORRIGIDO: use 'id' em vez de 'id_item'
+        $chk = $pdo->prepare("SELECT id FROM itens_ong WHERE id_ong=? AND nome=? AND tipo=?");
         $chk->execute([$id_ong, $nome, $tipo]);
         if ($chk->fetch()) {
             echo json_encode(["sucesso" => false, "erro" => "Item já cadastrado"]);
@@ -32,6 +32,8 @@ try {
 
         $stmt = $pdo->prepare("INSERT INTO itens_ong (id_ong, nome, tipo) VALUES (?, ?, ?)");
         $stmt->execute([$id_ong, $nome, $tipo]);
+        
+        // CORRIGIDO: retorna o ID inserido
         echo json_encode(["sucesso" => true, "id_item" => $pdo->lastInsertId(), "nome" => $nome]);
 
     } elseif ($acao === "remover") {
@@ -42,8 +44,8 @@ try {
             exit;
         }
 
-        // Garante que o item pertence à ONG logada
-        $stmt = $pdo->prepare("DELETE FROM itens_ong WHERE id_item=? AND id_ong=?");
+        // CORRIGIDO: use 'id' em vez de 'id_item'
+        $stmt = $pdo->prepare("DELETE FROM itens_ong WHERE id=? AND id_ong=?");
         $stmt->execute([$id_item, $id_ong]);
         echo json_encode(["sucesso" => true]);
 
@@ -52,5 +54,7 @@ try {
     }
 
 } catch (PDOException $e) {
-    echo json_encode(["sucesso" => false, "erro" => "Erro no banco de dados"]);
+    error_log("Erro no banco: " . $e->getMessage());
+    echo json_encode(["sucesso" => false, "erro" => "Erro no banco de dados: " . $e->getMessage()]);
 }
+?>

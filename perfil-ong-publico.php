@@ -39,7 +39,8 @@ try {
     $stmt_posts->execute([$id_ong]);
     $posts = $stmt_posts->fetchAll(PDO::FETCH_ASSOC);
 
-    $stmt_itens = $pdo->prepare("SELECT * FROM itens_ong WHERE id_ong = ? ORDER BY tipo, nome ASC");
+    // CORRIGIDO: seleciona 'id' explicitamente
+    $stmt_itens = $pdo->prepare("SELECT id, id_ong, nome, tipo FROM itens_ong WHERE id_ong = ? ORDER BY tipo, nome ASC");
     $stmt_itens->execute([$id_ong]);
     $itens           = $stmt_itens->fetchAll(PDO::FETCH_ASSOC);
     $itens_aceitos   = array_filter($itens, fn($i) => $i['tipo'] === 'ACEITO');
@@ -120,7 +121,6 @@ try {
     border: 1.5px solid #f5b8b3;
   }
 
-  /* Ícone de verificação animado */
   .check-icon {
     width: 18px; height: 18px;
     background: #28a745;
@@ -139,17 +139,51 @@ try {
     100% { transform: scale(1); }
   }
 
-  /* Faixa de destaque no card quando verificada */
   .profile-card.verificada {
     border: 2px solid #a8d5b0;
     background: linear-gradient(180deg, #f0fbf4 0%, #fff 60%);
   }
 
-  /* CNPJ no perfil */
   .ong-cnpj-info {
     font-size: 12px;
     color: #888;
     margin-bottom: 10px;
+  }
+  
+  /* Botão Doar */
+  .btn-doar {
+    background: linear-gradient(135deg, #f4822f, #ff6b2c);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 12px 24px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 10px;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .btn-doar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(244,130,47,0.3);
+  }
+  
+  .btn-doar-post {
+    background: #f4822f20;
+    color: #f4822f;
+    border: 1.5px solid #f4822f;
+    border-radius: 50px;
+    padding: 8px 16px;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: all 0.2s;
+  }
+  .btn-doar-post:hover {
+    background: #f4822f;
+    color: white;
   }
 </style>
 </head>
@@ -238,7 +272,7 @@ try {
       <?php endif; ?>
     </div>
 
-    <!-- ========== ABA ITENS ========== -->
+    <!-- ========== ABA ITENS (CORRIGIDA) ========== -->
     <div class="tab-content" id="itens-tab">
       <div class="section"><span>✅ Itens Aceitos</span></div>
       <div class="itens-grid">
@@ -246,7 +280,9 @@ try {
           <p class="empty-itens">Nenhum item cadastrado ainda.</p>
         <?php else: ?>
           <?php foreach ($itens_aceitos as $item): ?>
-            <div class="item-tag aceito"><?= htmlspecialchars($item['nome']) ?></div>
+            <?php if (isset($item['nome'])): ?>
+              <div class="item-tag aceito"><?= htmlspecialchars($item['nome']) ?></div>
+            <?php endif; ?>
           <?php endforeach; ?>
         <?php endif; ?>
       </div>
@@ -257,7 +293,9 @@ try {
           <p class="empty-itens">Nenhum item cadastrado ainda.</p>
         <?php else: ?>
           <?php foreach ($itens_recusados as $item): ?>
-            <div class="item-tag recusado"><?= htmlspecialchars($item['nome']) ?></div>
+            <?php if (isset($item['nome'])): ?>
+              <div class="item-tag recusado"><?= htmlspecialchars($item['nome']) ?></div>
+            <?php endif; ?>
           <?php endforeach; ?>
         <?php endif; ?>
       </div>

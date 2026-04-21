@@ -88,7 +88,7 @@ try {
 // ===== BUSCAR ITENS =====
 $itens_aceitos = $itens_recusados = [];
 try {
-    $stmt_itens = $pdo->prepare("SELECT * FROM itens_ong WHERE id_ong = ? ORDER BY tipo, nome ASC");
+    $stmt_itens = $pdo->prepare("SELECT id, id_ong, nome, tipo FROM itens_ong WHERE id_ong = ? ORDER BY tipo, nome ASC");
     $stmt_itens->execute([$id_ong]);
     $itens           = $stmt_itens->fetchAll(PDO::FETCH_ASSOC);
     $itens_aceitos   = array_filter($itens, fn($i) => $i['tipo'] === 'ACEITO');
@@ -323,7 +323,7 @@ $rotaPerfil = "perfil-ong.php";
       <?php endif; ?>
     </div>
 
-    <!-- ========== ABA ITENS ========== -->
+    <!-- ========== ABA ITENS (CORRIGIDA) ========== -->
     <div class="tab-content" id="itens-tab">
       <div class="section">
         <span>✅ Itens Aceitos</span>
@@ -334,10 +334,12 @@ $rotaPerfil = "perfil-ong.php";
           <p class="empty-itens" id="empty-aceitos">Nenhum item cadastrado ainda.</p>
         <?php else: ?>
           <?php foreach ($itens_aceitos as $item): ?>
-            <div class="item-tag aceito" id="item-<?= $item['id_item'] ?>">
-              <?= htmlspecialchars($item['nome']) ?>
-              <span class="remove-item" onclick="removerItem(<?= $item['id_item'] ?>, 'ACEITO')">✕</span>
-            </div>
+            <?php if (isset($item['id']) && isset($item['nome'])): ?>
+              <div class="item-tag aceito" id="item-<?= $item['id'] ?>">
+                <?= htmlspecialchars($item['nome']) ?>
+                <span class="remove-item" onclick="removerItem(<?= $item['id'] ?>, 'ACEITO')">✕</span>
+              </div>
+            <?php endif; ?>
           <?php endforeach; ?>
         <?php endif; ?>
       </div>
@@ -351,10 +353,12 @@ $rotaPerfil = "perfil-ong.php";
           <p class="empty-itens" id="empty-recusados">Nenhum item cadastrado ainda.</p>
         <?php else: ?>
           <?php foreach ($itens_recusados as $item): ?>
-            <div class="item-tag recusado" id="item-<?= $item['id_item'] ?>">
-              <?= htmlspecialchars($item['nome']) ?>
-              <span class="remove-item" onclick="removerItem(<?= $item['id_item'] ?>, 'RECUSADO')">✕</span>
-            </div>
+            <?php if (isset($item['id']) && isset($item['nome'])): ?>
+              <div class="item-tag recusado" id="item-<?= $item['id'] ?>">
+                <?= htmlspecialchars($item['nome']) ?>
+                <span class="remove-item" onclick="removerItem(<?= $item['id'] ?>, 'RECUSADO')">✕</span>
+              </div>
+            <?php endif; ?>
           <?php endforeach; ?>
         <?php endif; ?>
       </div>
