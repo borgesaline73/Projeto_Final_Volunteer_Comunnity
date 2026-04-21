@@ -146,19 +146,19 @@ body {
   font-weight: 500;
 }
 
-/* CONTEÚDO */
+/* CONTEÚDO — CORREÇÃO: removido max-height fixo que cortava o texto */
 .post-content {
   font-size: 13px;
   color: #444;
   line-height: 1.5;
   margin-bottom: 8px;
-  max-height: 80px;
   overflow: hidden;
-  transition: max-height 0.3s ease;
+  transition: max-height 0.4s ease;
+  max-height: 60px; /* altura inicial colapsada (~3 linhas) */
 }
 
 .post-content.expanded {
-  max-height: none;
+  max-height: 2000px; /* valor alto o suficiente para qualquer texto */
 }
 
 .read-more {
@@ -176,13 +176,13 @@ body {
   text-decoration: underline;
 }
 
-/* IMAGEM DO POST */
+/* IMAGEM DO POST — CORREÇÃO: removido max-height que cortava imagens */
 .post-image {
   width: 100%;
   border-radius: 12px;
   margin-top: 10px;
-  max-height: 250px;
-  object-fit: cover;
+  display: block;
+  object-fit: contain; /* mostra a imagem inteira sem cortar */
 }
 
 /* BOTÕES DE AÇÃO */
@@ -333,15 +333,9 @@ body {
 }
 
 @keyframes pulse {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-  100% {
-    transform: scale(1);
-  }
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
 }
 
 /* RESPONSIVIDADE */

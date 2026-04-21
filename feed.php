@@ -117,7 +117,6 @@ if ($tipoUsuario === "instituicao") {
         
           <?php foreach ($posts as $post): 
             $descricao = $post['descricao'];
-            $textoCurto = strlen($descricao) > 200 ? substr($descricao, 0, 200) . '...' : $descricao;
             $temTextoLongo = strlen($descricao) > 200;
           ?>
             <div class="post-card-solidario">
@@ -144,7 +143,7 @@ if ($tipoUsuario === "instituicao") {
               <?php endif; ?>
 
               <div class="post-content" id="content-<?= $post['id_post'] ?>">
-                <?= nl2br(htmlspecialchars($textoCurto)) ?>
+                <?= nl2br(htmlspecialchars($descricao)) ?>
               </div>
               
               <?php if ($temTextoLongo): ?>
