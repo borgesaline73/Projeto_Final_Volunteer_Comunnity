@@ -21,17 +21,16 @@ if ($token) {
     $registro = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($registro) {
-        
         $expira_em = strtotime($registro["expira_em"]);
         $agora = time();
-        
+
         // Debug (lembrar de remover depois do projeto pronto)
         error_log("Token encontrado: " . $token);
         error_log("Expira em: " . $registro["expira_em"]);
         error_log("Expira timestamp: " . $expira_em);
         error_log("Agora timestamp: " . $agora);
         error_log("Usado: " . ($registro["usado"] ? "SIM" : "NÃO"));
-        
+
         if (!$registro["usado"] && $expira_em > $agora) {
             $valido = true;
         } else {
@@ -53,22 +52,22 @@ if ($token) {
 
 // Processa nova senha
 if ($_SERVER["REQUEST_METHOD"] === "POST" && $valido && $registro) {
-    $nova    = $_POST["nova_senha"] ?? "";
+    $nova     = $_POST["nova_senha"] ?? "";
     $confirma = $_POST["confirma_senha"] ?? "";
 
     if (strlen($nova) < 8) {
         $mensagem = "A senha deve ter pelo menos 8 caracteres.";
-        $tipo     = "erro";
+        $tipo     = "erro_validacao";
     } elseif ($nova !== $confirma) {
         $mensagem = "As senhas não coincidem.";
-        $tipo     = "erro";
+        $tipo     = "erro_validacao";
     } else {
         try {
             $hash = password_hash($nova, PASSWORD_DEFAULT);
 
             // Inicia transação
             $pdo->beginTransaction();
-            
+
             // Atualiza senha
             $upd = $pdo->prepare("UPDATE usuarios SET senha = :senha WHERE id_usuario = :id");
             $upd->execute([":senha" => $hash, ":id" => $registro["id_usuario"]]);
@@ -76,18 +75,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && $valido && $registro) {
             // Marca token como usado
             $used = $pdo->prepare("UPDATE recuperacao_senha SET usado = true WHERE id = :id");
             $used->execute([":id" => $registro["id"]]);
-            
+
             // Confirma transação
             $pdo->commit();
 
-            $mensagem = "✅ Senha redefinida com sucesso! Você já pode fazer login.";
+            $mensagem = "Senha redefinida com sucesso! Você já pode fazer login.";
             $tipo     = "ok";
             $valido   = false;
-            
+
         } catch (Exception $e) {
             $pdo->rollBack();
             $mensagem = "Erro ao redefinir senha. Tente novamente.";
-            $tipo = "erro";
+            $tipo = "erro_validacao";
             error_log("Erro ao redefinir senha: " . $e->getMessage());
         }
     }
@@ -103,25 +102,40 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && $valido && $registro) {
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/estilo_global.css">
   <link rel="stylesheet" href="css/estilo_login.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
   <style>
-    .info-box {
-      width: 100%;
-      padding: 14px 18px;
-      border-radius: 14px;
-      font-size: 14px;
-      font-weight: 600;
-      text-align: center;
-      margin-bottom: 12px;
+    /* Confinar SweetAlert dentro do .login-screen */
+    .login-screen {
+      position: relative;
+      overflow: hidden;
     }
-    .info-box.ok {
-      background: #eaf7ee;
-      color: #2a7d46;
-      border: 1.5px solid #b6e8c7;
+    .swal2-container.swal-inside-redefinir {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      z-index: 9999;
     }
-    .info-box.erro {
-      background: #fdecea;
-      color: #b91c1c;
-      border: 1.5px solid #f5b4b0;
+    .swal2-container.swal-inside-redefinir .swal2-popup {
+      width: 88% !important;
+      max-width: 320px !important;
+      border-radius: 20px !important;
+      font-family: 'Nunito', sans-serif !important;
+    }
+    .swal2-confirm {
+      background-color: #f5920a !important;
+      border-radius: 50px !important;
+      padding: 8px 20px !important;
+      font-weight: 700 !important;
+      font-size: 13px !important;
+    }
+    .swal2-cancel {
+      border-radius: 50px !important;
+      padding: 8px 20px !important;
+      font-weight: 700 !important;
+      font-size: 13px !important;
     }
     .desc {
       font-size: 14px;
@@ -162,17 +176,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && $valido && $registro) {
       display: inline-block;
       margin-right: 10px;
     }
-    .valido {
-      color: #2a7d46;
-    }
-    .invalido {
-      color: #b91c1c;
-    }
+    .valido   { color: #2a7d46; }
+    .invalido { color: #b91c1c; }
   </style>
 </head>
 <body>
 
-<section class="login-screen">
+<section class="login-screen" id="loginWrapper">
 
   <div class="header">
     <a href="login.php" class="btn-back" aria-label="Voltar">&#8592;</a>
@@ -187,18 +197,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && $valido && $registro) {
 
     <h2>Nova senha</h2>
 
-    <?php if ($mensagem): ?>
-      <div class="info-box <?= $tipo ?>">
-        <?= htmlspecialchars($mensagem) ?>
-      </div>
-    <?php endif; ?>
-
-    <?php if ($tipo === "ok"): ?>
-      <a href="login.php" class="btn primary" style="display:block;text-align:center;text-decoration:none;padding:15px;border-radius:50px;background:#f5920a;color:#fff;font-weight:700;font-size:15px;margin-top:8px;">
-        🔐 Ir para o login
-      </a>
-
-    <?php elseif ($valido && $registro): ?>
+    <?php if ($valido && $registro): ?>
       <p class="desc">
         Olá, <strong><?= htmlspecialchars($registro['nome']) ?></strong>!<br>
         Escolha uma senha forte com pelo menos 8 caracteres.
@@ -208,22 +207,22 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && $valido && $registro) {
         <input type="password" name="nova_senha" id="nova_senha" placeholder="Nova senha" required>
         <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
         <div class="strength-label" id="strength-label"></div>
-        
+
         <div class="requisitos" id="requisitos">
-          <span id="req-tamanho" class="invalido">📏 8+ caracteres</span>
+          <span id="req-tamanho"   class="invalido">📏 8+ caracteres</span>
           <span id="req-maiuscula" class="invalido">🔠 Letra maiúscula</span>
-          <span id="req-numero" class="invalido">🔢 Número</span>
-          <span id="req-especial" class="invalido">✨ Caractere especial</span>
+          <span id="req-numero"    class="invalido">🔢 Número</span>
+          <span id="req-especial"  class="invalido">✨ Caractere especial</span>
         </div>
-        
+
         <input type="password" name="confirma_senha" id="confirma_senha" placeholder="Confirme a nova senha" required>
-        <div id="msg-confirma" style="font-size: 12px; margin-top: -5px; margin-bottom: 10px;"></div>
-        
+        <div id="msg-confirma" style="font-size:12px; margin-top:-5px; margin-bottom:10px;"></div>
+
         <button type="submit" class="btn primary" id="btn-submit" disabled>Salvar nova senha</button>
       </form>
 
-    <?php elseif (!$token): ?>
-      <p class="desc">Link inválido. Solicite a recuperação novamente.</p>
+    <?php else: ?>
+      <!-- Token inválido/expirado: SweetAlert cuida do aviso, exibe apenas o link de fallback -->
       <a href="recuperar_senha.php" class="forgot">Recuperar senha</a>
     <?php endif; ?>
 
@@ -233,97 +232,169 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && $valido && $registro) {
 
 </section>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-  const input = document.getElementById("nova_senha");
-  const confirma = document.getElementById("confirma_senha");
-  const fill = document.getElementById("strength-fill");
-  const label = document.getElementById("strength-label");
-  const btnSubmit = document.getElementById("btn-submit");
-  const msgConfirma = document.getElementById("msg-confirma");
-  
-  const reqTamanho = document.getElementById("req-tamanho");
-  const reqMaiuscula = document.getElementById("req-maiuscula");
-  const reqNumero = document.getElementById("req-numero");
-  const reqEspecial = document.getElementById("req-especial");
-  
-  function verificarSenha() {
-    const v = input.value;
+const loginEl = document.getElementById('loginWrapper');
+
+const swalRedefinir = Swal.mixin({
+    target: loginEl,
+    customClass: {
+        container: 'swal-inside-redefinir',
+    }
+});
+
+// ── Feedbacks vindos do PHP ────────────────────────────────────────────────
+
+<?php if ($tipo === "ok"): ?>
+// Senha redefinida com sucesso
+document.addEventListener('DOMContentLoaded', function () {
+    swalRedefinir.fire({
+        title: '✅ Senha redefinida!',
+        text: 'Sua senha foi alterada com sucesso. Você já pode fazer login.',
+        icon: 'success',
+        confirmButtonText: '🔐 Ir para o login',
+        confirmButtonColor: '#f5920a',
+        allowOutsideClick: false,
+        allowEscapeKey: false
+    }).then(() => {
+        window.location.href = 'login.php';
+    });
+});
+
+<?php elseif ($tipo === "erro"): ?>
+// Token inválido, expirado ou já usado
+document.addEventListener('DOMContentLoaded', function () {
+    swalRedefinir.fire({
+        title: 'Link inválido',
+        text: '<?= addslashes(htmlspecialchars($mensagem)) ?>',
+        icon: 'error',
+        confirmButtonText: 'Solicitar novo link',
+        confirmButtonColor: '#f5920a',
+        showCancelButton: true,
+        cancelButtonText: 'Voltar ao login',
+        cancelButtonColor: '#aaa',
+        allowOutsideClick: false,
+        allowEscapeKey: false
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = 'recuperar_senha.php';
+        } else {
+            window.location.href = 'login.php';
+        }
+    });
+});
+
+<?php elseif ($tipo === "erro_validacao"): ?>
+// Erro de validação do formulário (senha curta, não coincidem, etc.)
+document.addEventListener('DOMContentLoaded', function () {
+    swalRedefinir.fire({
+        title: 'Atenção',
+        text: '<?= addslashes(htmlspecialchars($mensagem)) ?>',
+        icon: 'warning',
+        confirmButtonText: 'Tentar novamente',
+        confirmButtonColor: '#f5920a'
+    });
+});
+<?php endif; ?>
+
+// ── Lógica do formulário (força de senha + confirmação) ────────────────────
+const inputSenha  = document.getElementById("nova_senha");
+const confirma    = document.getElementById("confirma_senha");
+const fill        = document.getElementById("strength-fill");
+const label       = document.getElementById("strength-label");
+const btnSubmit   = document.getElementById("btn-submit");
+const msgConfirma = document.getElementById("msg-confirma");
+
+const reqTamanho   = document.getElementById("req-tamanho");
+const reqMaiuscula = document.getElementById("req-maiuscula");
+const reqNumero    = document.getElementById("req-numero");
+const reqEspecial  = document.getElementById("req-especial");
+
+function verificarSenha() {
+    const v = inputSenha.value;
     const confirmValue = confirma.value;
-    
-    let temTamanho = v.length >= 8;
-    let temMaiuscula = /[A-Z]/.test(v);
-    let temNumero = /[0-9]/.test(v);
-    let temEspecial = /[^A-Za-z0-9]/.test(v);
-    
-    reqTamanho.className = temTamanho ? "valido" : "invalido";
+
+    const temTamanho   = v.length >= 8;
+    const temMaiuscula = /[A-Z]/.test(v);
+    const temNumero    = /[0-9]/.test(v);
+    const temEspecial  = /[^A-Za-z0-9]/.test(v);
+
+    reqTamanho.className   = temTamanho   ? "valido" : "invalido";
     reqMaiuscula.className = temMaiuscula ? "valido" : "invalido";
-    reqNumero.className = temNumero ? "valido" : "invalido";
-    reqEspecial.className = temEspecial ? "valido" : "invalido";
-    
-    let score = 0;
-    if (temTamanho) score++;
-    if (temMaiuscula) score++;
-    if (temNumero) score++;
-    if (temEspecial) score++;
-    
+    reqNumero.className    = temNumero    ? "valido" : "invalido";
+    reqEspecial.className  = temEspecial  ? "valido" : "invalido";
+
+    const score = [temTamanho, temMaiuscula, temNumero, temEspecial].filter(Boolean).length;
+
     const map = [
-      { w: "0%",   c: "#eee",    t: "" },
-      { w: "25%",  c: "#ef4444", t: "Fraca" },
-      { w: "50%",  c: "#f59e0b", t: "Razoável" },
-      { w: "75%",  c: "#3b82f6", t: "Boa" },
-      { w: "100%", c: "#22c55e", t: "Forte" },
+        { w: "0%",   c: "#eee",    t: "" },
+        { w: "25%",  c: "#ef4444", t: "Fraca" },
+        { w: "50%",  c: "#f59e0b", t: "Razoável" },
+        { w: "75%",  c: "#3b82f6", t: "Boa" },
+        { w: "100%", c: "#22c55e", t: "Forte" },
     ];
-    
-    fill.style.width = map[score].w;
+
+    fill.style.width      = map[score].w;
     fill.style.background = map[score].c;
-    label.textContent = map[score].t;
-    label.style.color = map[score].c;
-    
+    label.textContent     = map[score].t;
+    label.style.color     = map[score].c;
+
     verificarConfirmacao();
-    
+
     const senhasIguais = v === confirmValue && v !== "";
-    const senhaValida = temTamanho && (temMaiuscula || temNumero || temEspecial);
-    
-    btnSubmit.disabled = !(senhasIguais && senhaValida && v.length > 0);
-  }
-  
-  function verificarConfirmacao() {
-    const v = input.value;
+    const senhaValida  = temTamanho && (temMaiuscula || temNumero || temEspecial);
+    btnSubmit.disabled = !(senhasIguais && senhaValida);
+}
+
+function verificarConfirmacao() {
+    const v = inputSenha.value;
     const confirmValue = confirma.value;
-    
+
     if (confirmValue === "") {
-      msgConfirma.innerHTML = "";
+        msgConfirma.innerHTML = "";
     } else if (v === confirmValue) {
-      msgConfirma.innerHTML = "✅ Senhas coincidem";
-      msgConfirma.style.color = "#2a7d46";
+        msgConfirma.innerHTML   = "✅ Senhas coincidem";
+        msgConfirma.style.color = "#2a7d46";
     } else {
-      msgConfirma.innerHTML = "❌ Senhas não coincidem";
-      msgConfirma.style.color = "#b91c1c";
+        msgConfirma.innerHTML   = "❌ Senhas não coincidem";
+        msgConfirma.style.color = "#b91c1c";
     }
-  }
-  
-  function validarSenha() {
-    const v = input.value;
+}
+
+function validarSenha() {
+    const v = inputSenha.value;
     const confirmValue = confirma.value;
-    
+
     if (v.length < 8) {
-      alert("A senha deve ter pelo menos 8 caracteres.");
-      return false;
+        swalRedefinir.fire({
+            title: 'Atenção',
+            text: 'A senha deve ter pelo menos 8 caracteres.',
+            icon: 'warning',
+            confirmButtonText: 'Ok',
+            confirmButtonColor: '#f5920a'
+        });
+        return false;
     }
-    
+
     if (v !== confirmValue) {
-      alert("As senhas não coincidem.");
-      return false;
+        swalRedefinir.fire({
+            title: 'Atenção',
+            text: 'As senhas não coincidem.',
+            icon: 'warning',
+            confirmButtonText: 'Ok',
+            confirmButtonColor: '#f5920a'
+        });
+        return false;
     }
-    
+
     return true;
-  }
-  
-  if (input) {
-    input.addEventListener("input", verificarSenha);
+}
+
+if (inputSenha) {
+    inputSenha.addEventListener("input", verificarSenha);
     confirma.addEventListener("input", verificarConfirmacao);
     confirma.addEventListener("input", verificarSenha);
-  }
+}
 </script>
 
 </body>

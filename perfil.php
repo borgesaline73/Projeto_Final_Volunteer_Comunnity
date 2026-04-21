@@ -137,7 +137,7 @@ $rotaPerfil = "perfil.php";
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
 <style>
-  /* ===== ESTILO PARA AS ABAS (MESMO DO PERFIL DA ONG) ===== */
+  /* ===== ESTILO PARA AS ABAS (IGUAL DO PERFIL DA ONG) ===== */
   .phone {
     position: relative;
     overflow: hidden;
@@ -145,14 +145,15 @@ $rotaPerfil = "perfil.php";
 
   /* Menu de abas  */
   .tab-menu {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding: 12px 20px 4px;
-    scrollbar-width: none;
-    margin: 0;
-    background: transparent;
-  }
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  overflow-x: auto;
+  padding: 12px 20px;
+  scrollbar-width: none;
+  margin: 0 0 8px 0;
+  background: transparent;
+}
 
   .tab-menu::-webkit-scrollbar {
     display: none;
