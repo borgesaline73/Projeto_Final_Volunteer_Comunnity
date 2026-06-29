@@ -67,6 +67,7 @@ try {
                                CASE 
                                    WHEN d.status = 'AGENDADA' THEN 'Coleta Agendada'
                                    WHEN d.status = 'RECEBIDA' THEN 'Coleta Recebida'
+                                   WHEN d.status = 'PENDENTE_PIX' THEN 'Aguardando confirmação PIX'
                                    ELSE d.status
                                END as status_formatado
                         FROM doacoes d 
@@ -74,7 +75,7 @@ try {
                         LEFT JOIN usuarios u ON d.id_ong = u.id_usuario
                         WHERE d.id_doador = ? 
                         ORDER BY 
-                            CASE WHEN d.status = 'AGENDADA' THEN 1 ELSE 2 END,
+                            CASE WHEN d.status IN ('AGENDADA', 'PENDENTE_PIX') THEN 1 ELSE 2 END,
                             c.data_agendada DESC";
         
         $stmt_coletas = $pdo->prepare($sql_coletas);
@@ -83,7 +84,7 @@ try {
 
         // Separar por status
         $coletas_agendadas = array_filter($todas_coletas, function($coleta) {
-            return $coleta['status'] === 'AGENDADA';
+            return $coleta['status'] === 'AGENDADA' || $coleta['status'] === 'PENDENTE_PIX';
         });
         
         $coletas_recebidas = array_filter($todas_coletas, function($coleta) {
@@ -227,6 +228,12 @@ $rotaPerfil = "perfil.php";
     background: rgba(255,255,255,0.25);
     color: white;
   }
+
+  /* Status PENDENTE_PIX */
+  .status-pendente-pix {
+    background: #ede7f6;
+    color: #5e35b1;
+  }
 </style>
 </head>
 
@@ -289,9 +296,11 @@ $rotaPerfil = "perfil.php";
                 </div>
               <?php endif; ?>
               
+              <?php if ($coleta['status'] !== 'PENDENTE_PIX'): ?>
               <div class="coleta-local">
                 📍 <strong>Local:</strong> <?= htmlspecialchars($coleta['local_coleta']) ?>
               </div>
+              <?php endif; ?>
               
               <?php if (!empty($coleta['descricao_item'])): ?>
                 <div class="coleta-descricao">
@@ -305,8 +314,8 @@ $rotaPerfil = "perfil.php";
                 </div>
               <?php endif; ?>
               
-              <div class="coleta-status status-agendada">
-                📅 <?= htmlspecialchars($coleta['status_formatado']) ?>
+              <div class="coleta-status <?= $coleta['status'] === 'PENDENTE_PIX' ? 'status-pendente-pix' : 'status-agendada' ?>">
+                <?= $coleta['status'] === 'PENDENTE_PIX' ? '💜' : '📅' ?> <?= htmlspecialchars($coleta['status_formatado']) ?>
               </div>
             </div>
           <?php endforeach; ?>

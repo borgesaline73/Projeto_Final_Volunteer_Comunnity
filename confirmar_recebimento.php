@@ -55,7 +55,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $pdo->beginTransaction();
 
-        $stmt_update = $pdo->prepare("UPDATE doacoes SET status = 'RECEBIDA', data_doacao = CURRENT_TIMESTAMP WHERE id_doacao = ?");
+        // Doações em dinheiro (PIX) também precisam ter o status_pagamento
+        // atualizado para refletir que o valor já foi confirmado pela ONG.
+        if ($doacao['tipo'] === 'DINHEIRO') {
+            $stmt_update = $pdo->prepare("UPDATE doacoes 
+                                          SET status = 'RECEBIDA', 
+                                              status_pagamento = 'CONFIRMADO', 
+                                              data_doacao = CURRENT_TIMESTAMP 
+                                          WHERE id_doacao = ?");
+        } else {
+            $stmt_update = $pdo->prepare("UPDATE doacoes 
+                                          SET status = 'RECEBIDA', 
+                                              data_doacao = CURRENT_TIMESTAMP 
+                                          WHERE id_doacao = ?");
+        }
         $stmt_update->execute([$id_doacao]);
 
         $mensagem_notificacao = "Sua doação para " . ($_SESSION["usuario_nome"] ?? "a ONG") . " foi recebida e confirmada! 🎉";
